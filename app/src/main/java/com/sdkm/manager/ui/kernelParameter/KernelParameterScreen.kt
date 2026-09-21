@@ -31,7 +31,6 @@
 
 package com.sdkm.manager.ui.kernelParameter
 
-import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
@@ -84,6 +83,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleButton
@@ -96,7 +96,6 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -106,7 +105,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -116,7 +114,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -125,12 +122,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_account_tree_rounded_filled
-import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_balance_rounded_filled
-import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_battery_android_frame_plus_rounded_filled
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_speaker_notes_rounded_filled
-import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_speed_rounded_filled
-import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_tune_rounded_filled
-import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_comments_disabled_rounded_filled
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_memory_alt_rounded_filled
 import com.sdkm.manager.R
 import com.sdkm.manager.ui.components.Card.ExpandableCard
@@ -218,11 +210,8 @@ fun KernelParameterScreen(viewModel: KernelParameterViewModel = viewModel(), nav
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    item {
-                        KernelProfileCard()
-                    }
                     if (kernelParameters.hasSchedAutogroup || kernelParameters.hasPrintk ||
-                        kernelParameters.hasTcpCongestionAlgorithm || kernelParameters.hasDmesgRestrict ||
+                        kernelParameters.hasTcpCongestionAlgorithm ||
                         kernelParameters.hasSchedLibName
                     ) {
                         item {
@@ -249,141 +238,8 @@ fun KernelParameterScreen(viewModel: KernelParameterViewModel = viewModel(), nav
 }
 
 @Composable
-fun KernelProfileCard(viewModel: KernelParameterViewModel = viewModel()) {
-    val context = LocalContext.current
-
-    val kernelProfile by viewModel.kernelProfile.collectAsStateWithLifecycle()
-    val kernelProfileLink = "https://github.com/Shas45558/SDK_Manager/tree/main/kernel-profile-template"
-
-    val options = listOf(
-        stringResource(R.string.profile_powersave),
-        stringResource(R.string.profile_balance),
-        stringResource(R.string.profile_performance),
-    )
-
-    val icons = listOf(
-        painterResource(materialsymbols_ic_battery_android_frame_plus_rounded_filled),
-        painterResource(materialsymbols_ic_balance_rounded_filled),
-        painterResource(materialsymbols_ic_speed_rounded_filled),
-    )
-
-    var selectedIndex by rememberSaveable { mutableIntStateOf(kernelProfile.currentProfile) }
-
-    Card(
-        shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceBright
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        painter = painterResource(materialsymbols_ic_tune_rounded_filled),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        contentDescription = null,
-                    )
-                }
-                Text(
-                    text = stringResource(R.string.kernel_profiles_title),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.titleLarge,
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-                ) {
-                    options.forEachIndexed { index, label ->
-                        ToggleButton(
-                            enabled =
-                                kernelProfile.hasProfilePowersave && kernelProfile.hasProfileBalance && kernelProfile.hasProfilePerformance,
-                            checked = selectedIndex == index,
-                            onCheckedChange = {
-                                viewModel.updateProfile(index)
-                                selectedIndex = index
-                            },
-                            shapes =
-                                when (index) {
-                                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes(
-                                        shape = RoundedCornerShape(
-                                            topStart = 28.dp,
-                                            bottomStart = 28.dp,
-                                            topEnd = 8.dp,
-                                            bottomEnd = 8.dp,
-                                        ),
-                                        checkedShape = RoundedCornerShape(28.dp),
-                                    )
-
-                                    options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes(
-                                        shape = RoundedCornerShape(
-                                            topStart = 8.dp,
-                                            bottomStart = 8.dp,
-                                            topEnd = 28.dp,
-                                            bottomEnd = 28.dp,
-                                        ),
-                                        checkedShape = RoundedCornerShape(28.dp),
-                                    )
-
-                                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes(
-                                        checkedShape = RoundedCornerShape(28.dp),
-                                    )
-                                },
-                            modifier = Modifier
-                                .weight(1f)
-                                .semantics { role = Role.RadioButton },
-                            contentPadding = PaddingValues(8.dp),
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    painter = icons[index],
-                                    contentDescription = null,
-                                )
-                                Text(label)
-                            }
-                        }
-                    }
-                }
-                if (!kernelProfile.hasProfilePowersave && !kernelProfile.hasProfileBalance && !kernelProfile.hasProfilePerformance) {
-                    Button(
-                        modifier = Modifier.fillMaxSize(),
-                        onClick = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, kernelProfileLink.toUri()))
-                        },
-                        shapes = ButtonDefaults.shapes(),
-                        contentPadding = PaddingValues(16.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.get_templates),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun KernelParameterCard(viewModel: KernelParameterViewModel) {
     val kernelParameters by viewModel.kernelParameters.collectAsStateWithLifecycle()
-    var dmesgRestrict = remember(kernelParameters.dmesgRestrict) { kernelParameters.dmesgRestrict == 1 }
     var printk by remember { mutableStateOf(kernelParameters.printk) }
     var schedLibName by remember { mutableStateOf(kernelParameters.schedLibName) }
     var tcpCongestionAlgorithm by remember { mutableStateOf(kernelParameters.tcpCongestionAlgorithm) }
@@ -430,98 +286,6 @@ fun KernelParameterCard(viewModel: KernelParameterViewModel) {
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-            }
-
-            AnimatedVisibility(
-                visible = kernelParameters.hasDmesgRestrict,
-                enter = fadeIn(
-                    animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
-                ) + expandVertically(
-                    animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(),
-                ),
-                exit = fadeOut(
-                    animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
-                ) + shrinkVertically(
-                    animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(),
-                ),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    OutlinedCard(
-                        shape = MaterialTheme.shapes.extraLarge,
-                        colors = CardDefaults.outlinedCardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        ),
-                        border = BorderStroke(
-                            width = 2.0.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                        ),
-                        onClick = { viewModel.setDmesgRestrict(!dmesgRestrict) },
-                    ) {
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxSize().padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            ) {
-                                Icon(
-                                    painter = painterResource(materialsymbols_ic_comments_disabled_rounded_filled),
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    contentDescription = stringResource(R.string.restrict_dmesg),
-                                )
-                                Text(
-                                    text = stringResource(R.string.restrict_dmesg),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Switch(
-                                    checked = dmesgRestrict,
-                                    onCheckedChange = { dmesgRestrict = it },
-                                    thumbContent = {
-                                        Crossfade(
-                                            targetState = dmesgRestrict,
-                                            animationSpec = tween(durationMillis = 500),
-                                        ) { isChecked ->
-                                            if (isChecked) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.ic_check),
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                                                )
-                                            }
-                                        }
-                                    },
-                                )
-                            }
-                            Surface(
-                                shape = RoundedCornerShape(
-                                    topStart = 28.dp,
-                                    topEnd = 28.dp,
-                                    bottomStart = 8.dp,
-                                    bottomEnd = 8.dp,
-                                ),
-                                color = MaterialTheme.colorScheme.primary,
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.restrict_dmesg_title),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                    )
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.onPrimary)
-                                    Text(
-                                        text = stringResource(R.string.restrict_dmesg_desc),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
             }
 
             AnimatedVisibility(
@@ -1102,13 +866,24 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
     )
 
     val memory by viewModel.memory.collectAsStateWithLifecycle()
-    var swappiness by remember { mutableStateOf(memory.swappiness) }
+    val context = LocalContext.current
+    val vmPrefs = remember {
+        context.getSharedPreferences("vm_parameters", android.content.Context.MODE_PRIVATE)
+    }
+    var swappiness by remember(memory.swappiness) {
+        mutableStateOf(memory.swappiness.toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f)
+    }
+    var extraFreeKbytes by remember(memory.extraFreeKbytes) {
+        mutableStateOf(memory.extraFreeKbytes.toFloatOrNull()?.coerceIn(0f, 131072f) ?: 0f)
+    }
+    var watermarkScaleFactor by remember(memory.watermarkScaleFactor) {
+        mutableStateOf(memory.watermarkScaleFactor.toFloatOrNull()?.coerceIn(0f, 1000f) ?: 0f)
+    }
     var dirtyRatio by remember { mutableStateOf(memory.dirtyRatio) }
+    var selfBooting by remember { mutableStateOf(vmPrefs.getBoolean("enabled", false)) }
 
     // ZCD = ZRAM Compression Dialog
     var openZCD by remember { mutableStateOf(false) }
-    // SD = Swappiness Dialog
-    var openSD by remember { mutableStateOf(false) }
     // DR = Dirty Ratio
     var openDR by remember { mutableStateOf(false) }
 
@@ -1225,36 +1000,124 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                     }
                 }
 
-                if (memory.hasSwappiness) {
-                    AnimatedVisibility(
-                        visible = memory.hasSwappiness,
-                        enter = fadeIn(
-                            animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
-                        ) + expandVertically(
-                            animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(),
+                if (memory.hasSwappiness || memory.hasExtraFreeKbytes || memory.hasWatermarkScaleFactor) {
+                    OutlinedCard(
+                        shape = MaterialTheme.shapes.extraLarge,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
                         ),
-                        exit = fadeOut(
-                            animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
-                        ) + shrinkVertically(
-                            animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(),
+                        border = BorderStroke(
+                            width = 2.dp,
+                            color = MaterialTheme.colorScheme.primary,
                         ),
                     ) {
-                        Button(
-                            contentPadding = PaddingValues(16.dp),
-                            shapes = ButtonDefaults.shapes(RoundedCornerShape(28.dp)),
-                            onClick = { openSD = true },
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
-                            Column(Modifier.fillMaxSize()) {
-                                Text(
-                                    text = stringResource(R.string.swappiness),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onPrimary,
+                            Text(
+                                text = stringResource(R.string.vm_parameters),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                            Text(
+                                text = stringResource(R.string.vm_parameters_desc),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                            )
+
+                            if (memory.hasSwappiness) {
+                                VmParameterSlider(
+                                    title = stringResource(R.string.swappiness),
+                                    valueText = swappiness.toInt().toString(),
+                                    value = swappiness,
+                                    valueRange = 0f..100f,
+                                    onValueChange = { swappiness = it },
+                                    onValueChangeFinished = {
+                                        val value = swappiness.toInt().toString()
+                                        viewModel.setValue(KernelUtils.SWAPPINESS, value)
+                                        vmPrefs.edit().putString("swappiness", value).apply()
+                                    },
                                 )
-                                Text(
-                                    text = "${memory.swappiness}%",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onPrimary,
+                            }
+
+                            if (memory.hasExtraFreeKbytes) {
+                                VmParameterSlider(
+                                    title = stringResource(R.string.extra_free_kbytes),
+                                    valueText = "${extraFreeKbytes.toInt()}(${extraFreeKbytes.toInt() / 1024}MB)",
+                                    value = extraFreeKbytes,
+                                    valueRange = 0f..131072f,
+                                    onValueChange = { extraFreeKbytes = it },
+                                    onValueChangeFinished = {
+                                        val value = extraFreeKbytes.toInt().toString()
+                                        viewModel.setValue(KernelUtils.EXTRA_FREE_KBYTES, value)
+                                        vmPrefs.edit().putString("extra_free_kbytes", value).apply()
+                                    },
                                 )
+                            }
+
+                            if (memory.hasWatermarkScaleFactor) {
+                                VmParameterSlider(
+                                    title = stringResource(R.string.watermark_scale_factor),
+                                    valueText = "${watermarkScaleFactor.toInt()}(${watermarkScaleFactor.toInt() / 100f}%)",
+                                    value = watermarkScaleFactor,
+                                    valueRange = 0f..1000f,
+                                    onValueChange = { watermarkScaleFactor = it },
+                                    onValueChangeFinished = {
+                                        val value = watermarkScaleFactor.toInt().toString()
+                                        viewModel.setValue(KernelUtils.WATERMARK_SCALE_FACTOR, value)
+                                        vmPrefs.edit().putString("watermark_scale_factor", value).apply()
+                                    },
+                                )
+                            }
+
+                            Surface(
+                                shape = MaterialTheme.shapes.extraLarge,
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_power_settings_new),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(40.dp),
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(R.string.self_booting),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.self_booting_desc),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.self_booting_permission),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    Switch(
+                                        checked = selfBooting,
+                                        onCheckedChange = { enabled ->
+                                            selfBooting = enabled
+                                            vmPrefs.edit()
+                                                .putBoolean("enabled", enabled)
+                                                .putString("swappiness", swappiness.toInt().toString())
+                                                .putString("extra_free_kbytes", extraFreeKbytes.toInt().toString())
+                                                .putString("watermark_scale_factor", watermarkScaleFactor.toInt().toString())
+                                                .apply()
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -1318,7 +1181,7 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                                 color = MaterialTheme.colorScheme.onPrimary,
                             )
                             Text(
-                                text = memory.dirtyRatio,
+                                text = dirtyRatio,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onPrimary,
                             )
@@ -1397,49 +1260,6 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
         )
     }
 
-    if (openSD) {
-        AlertDialog(
-            onDismissRequest = { openSD = false },
-            text = {
-                OutlinedTextField(
-                    value = swappiness,
-                    onValueChange = { swappiness = it },
-                    label = { Text(stringResource(R.string.swappiness)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            viewModel.setValue(KernelUtils.SWAPPINESS, swappiness)
-                            openSD = false
-                        },
-                    ),
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.setValue(KernelUtils.SWAPPINESS, swappiness)
-                        openSD = false
-                    },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.change))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { openSD = false },
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
-
     if (openDR) {
         AlertDialog(
             onDismissRequest = { openDR = false },
@@ -1480,6 +1300,56 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                     Text(stringResource(R.string.cancel))
                 }
             },
+        )
+    }
+}
+
+@Composable
+private fun VmParameterSlider(
+    title: String,
+    valueText: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.weight(1f),
+            )
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.18f),
+                modifier = Modifier.size(24.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "?",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+            Text(
+                text = valueText,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(start = 10.dp),
+            )
+        }
+        Slider(
+            value = value.coerceIn(valueRange.start, valueRange.endInclusive),
+            onValueChange = onValueChange,
+            onValueChangeFinished = onValueChangeFinished,
+            valueRange = valueRange,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

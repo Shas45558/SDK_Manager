@@ -98,15 +98,7 @@
     <string name="gpu_throttling">Троттлинг ГП</string>
 
     <!-- Kernel Screen -->
-    <string name="kernel_profiles_title">Профили ядра</string>
-    <string name="profile_powersave">Энергосбережение</string>
-    <string name="profile_balance">Баланс</string>
-    <string name="profile_performance">Производительность</string>
-    <string name="get_templates">Получить шаблоны профилей ядра</string>
     <string name="kernel_parameter_title">Параметры ядра</string>
-    <string name="restrict_dmesg">Ограничить вывод dmesg</string>
-    <string name="restrict_dmesg_title">Ограничение Dmesg</string>
-    <string name="restrict_dmesg_desc">Этот переключатель определяет, запрещено ли непривилегированным пользователям использовать dmesg для просмотра сообщений из буфера журнала ядра. Когда dmesg_restrict установлен в неактивное состояние (0), ограничений нет.</string>
     <string name="sched_auto_group">Автогруппировка планировщика</string>
     <string name="sched_lib_name_desc">Добавьте пакеты приложений в список sched_lib_name, чтобы сообщать о максимальной частоте для задачи unity</string>
     <string name="tcp_congestion">Алгоритм перегрузки TCP</string>

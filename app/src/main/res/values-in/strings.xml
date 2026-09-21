@@ -111,15 +111,7 @@
     <string name="adreno_boost">Adreno boost</string>
     <string name="gpu_throttling">Throttling GPU</string>
 
-    <string name="kernel_profiles_title">Profil Kernel</string>
-    <string name="profile_powersave">Hemat daya</string>
-    <string name="profile_balance">Seimbang</string>
-    <string name="profile_performance">Performa</string>
-    <string name="get_templates">Dapatkan templat profil kernel</string>
     <string name="kernel_parameter_title">Parameter Kernel</string>
-    <string name="restrict_dmesg">Batasi output dmesg</string>
-    <string name="restrict_dmesg_title">Batasi Dmesg</string>
-    <string name="restrict_dmesg_desc">Tombol ini menunjukkan apakah pengguna tanpa hak istimewa dicegah menggunakan dmesg untuk melihat pesan dari buffer log kernel. Ketika dmesg_restrict diatur ke tidak aktif (0), tidak ada batasan.</string>
     <string name="sched_auto_group">Sched auto group</string>
     <string name="printk">printk</string>
     <string name="sched_lib_name">Nama Sched lib</string>

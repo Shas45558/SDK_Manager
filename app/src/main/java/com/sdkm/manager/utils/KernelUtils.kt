@@ -30,7 +30,6 @@
 package com.sdkm.manager.utils
 
 import android.content.Context
-import android.os.Environment
 import android.system.Os
 import android.util.Log
 import com.sdkm.manager.R
@@ -39,17 +38,11 @@ import com.topjohnwu.superuser.Shell
 object KernelUtils {
     const val TAG = "KernelUtils"
 
-    val KERNEL_PROFILE_PATH = "${Environment.getExternalStorageDirectory().path}/SDKM/kernel-profile"
-    val KERNEL_PROFILE_CURRENT = "$KERNEL_PROFILE_PATH/current_profile"
-    val KERNEL_PROFILE_POWERSAVE = "$KERNEL_PROFILE_PATH/powersave.sh"
-    val KERNEL_PROFILE_BALANCE = "$KERNEL_PROFILE_PATH/balance.sh"
-    val KERNEL_PROFILE_PERFORMANCE = "$KERNEL_PROFILE_PATH/performance.sh"
 
     const val FULL_KERNEL_VERSION = "/proc/version"
 
     const val SCHED_AUTO_GROUP = "/proc/sys/kernel/sched_autogroup_enabled"
     const val PRINTK = "/proc/sys/kernel/printk"
-    const val DMESG_RESTRICT = "/proc/sys/kernel/dmesg_restrict"
     const val SCHED_LIB_NAME = "/proc/sys/kernel/sched_lib_name"
 
     const val SCHED_UTIL_CLAMP_MAX = "/proc/sys/kernel/sched_util_clamp_max"
@@ -61,6 +54,8 @@ object KernelUtils {
     const val ZRAM_SIZE = "/sys/block/zram0/disksize"
     const val ZRAM_COMP_ALGORITHM = "/sys/block/zram0/comp_algorithm"
     const val SWAPPINESS = "/proc/sys/vm/swappiness"
+    const val EXTRA_FREE_KBYTES = "/proc/sys/vm/extra_free_kbytes"
+    const val WATERMARK_SCALE_FACTOR = "/proc/sys/vm/watermark_scale_factor"
     const val DIRTY_RATIO = "/proc/sys/vm/dirty_ratio"
 
     const val TCP_CONGESTION_ALGORITHM = "/proc/sys/net/ipv4/tcp_congestion_control"
@@ -75,36 +70,6 @@ object KernelUtils {
     const val BURST_PENALTY_OFFSET = "/proc/sys/kernel/sched_burst_penalty_offset"
     const val BURST_PENALTY_SCALE = "/proc/sys/kernel/sched_burst_penalty_scale"
     const val BURST_CACHE_LIFETIME = "/proc/sys/kernel/sched_burst_cache_lifetime"
-
-    fun getKernelProfile(): Int = runCatching {
-        Utils.readFile(KERNEL_PROFILE_CURRENT).toInt()
-    }.getOrElse {
-        Log.e(TAG, "getKernelProfile: ${it.message}", it)
-        0
-    }
-
-    fun setKernelProfile(profile: Int) {
-        runCatching {
-            when (profile) {
-                0 -> {
-                    Shell.cmd("su -c sh $KERNEL_PROFILE_POWERSAVE").exec()
-                    Utils.writeFile(KERNEL_PROFILE_CURRENT, "0")
-                }
-
-                1 -> {
-                    Shell.cmd("su -c sh $KERNEL_PROFILE_BALANCE").exec()
-                    Utils.writeFile(KERNEL_PROFILE_CURRENT, "1")
-                }
-
-                2 -> {
-                    Shell.cmd("su -c sh $KERNEL_PROFILE_PERFORMANCE").exec()
-                    Utils.writeFile(KERNEL_PROFILE_CURRENT, "2")
-                }
-            }
-        }.onFailure {
-            Log.e(TAG, "setKernelProfile: ${it.message}", it)
-        }
-    }
 
     fun getKernelVersion(context: Context): String = runCatching {
         Os.uname().release
@@ -238,19 +203,4 @@ object KernelUtils {
         context.getString(R.string.unknown)
     }
 
-    fun mkdirKernelProfilePath() {
-        runCatching {
-            Shell.cmd("mkdir -p $KERNEL_PROFILE_PATH").exec()
-        }.onFailure {
-            Log.e(TAG, "mkdirKernelProfilePath: ${it.message}", it)
-        }
-    }
-
-    fun createCurrentKernelProfileNode() {
-        runCatching {
-            Shell.cmd("echo 1 > $KERNEL_PROFILE_CURRENT").exec()
-        }.onFailure {
-            Log.e(TAG, "createCurrentKernelProfileNode: ${it.message}", it)
-        }
-    }
 }

@@ -46,18 +46,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class KernelParameterViewModel(application: Application) : AndroidViewModel(application) {
-    data class KernelProfile(
-        val currentProfile: Int = 1,
-        val hasProfilePowersave: Boolean = false,
-        val hasProfileBalance: Boolean = false,
-        val hasProfilePerformance: Boolean = false,
-    )
-
     data class KernelParameters(
         val schedAutogroup: Int? = 0,
         val hasSchedAutogroup: Boolean = false,
-        val hasDmesgRestrict: Boolean = false,
-        val dmesgRestrict: Int? = 0,
         val printk: String = "unknown",
         val hasPrintk: Boolean = false,
         val tcpCongestionAlgorithm: String = "unknown",
@@ -87,6 +78,10 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
         val availableZramCompAlgorithms: List<String> = emptyList(),
         val swappiness: String = "N/A",
         val hasSwappiness: Boolean = false,
+        val extraFreeKbytes: String = "N/A",
+        val hasExtraFreeKbytes: Boolean = false,
+        val watermarkScaleFactor: String = "N/A",
+        val hasWatermarkScaleFactor: Boolean = false,
         val hasDirtyRatio: Boolean = false,
         val dirtyRatio: String = "N/A",
     )
@@ -108,9 +103,6 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
         val burstCacheLifetime: String = "",
     )
 
-    private val _kernelProfile = MutableStateFlow(KernelProfile())
-    val kernelProfile: StateFlow<KernelProfile> = _kernelProfile
-
     private val _kernelParameters = MutableStateFlow(KernelParameters())
     val kernelParameters: StateFlow<KernelParameters> = _kernelParameters
 
@@ -129,7 +121,6 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            loadKernelProfile()
             loadKernelParameter()
             loadUclamp()
             loadMemory()
@@ -148,30 +139,10 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
 
     fun refresh() {
         refreshRequests.trySend(Unit)
-        loadKernelProfile()
         loadKernelParameter()
         loadUclamp()
         loadMemory()
         loadBoreScheduler()
-    }
-
-    fun loadKernelProfile() {
-        viewModelScope.launch(Dispatchers.IO) {
-            if (!Utils.testFile(KernelUtils.KERNEL_PROFILE_PATH)) {
-                KernelUtils.mkdirKernelProfilePath()
-            }
-
-            if (!Utils.testFile(KernelUtils.KERNEL_PROFILE_CURRENT)) {
-                KernelUtils.createCurrentKernelProfileNode()
-            }
-
-            _kernelProfile.value = KernelProfile(
-                currentProfile = KernelUtils.getKernelProfile(),
-                hasProfilePowersave = Utils.testFile(KernelUtils.KERNEL_PROFILE_POWERSAVE),
-                hasProfileBalance = Utils.testFile(KernelUtils.KERNEL_PROFILE_BALANCE),
-                hasProfilePerformance = Utils.testFile(KernelUtils.KERNEL_PROFILE_PERFORMANCE),
-            )
-        }
     }
 
     fun loadKernelParameter() {
@@ -180,8 +151,6 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
             _kernelParameters.value = KernelParameters(
                 schedAutogroup = Utils.readFile(KernelUtils.SCHED_AUTO_GROUP).toIntOrNull(),
                 hasSchedAutogroup = Utils.testFile(KernelUtils.SCHED_AUTO_GROUP),
-                hasDmesgRestrict = Utils.testFile(KernelUtils.DMESG_RESTRICT),
-                dmesgRestrict = Utils.readFile(KernelUtils.DMESG_RESTRICT).toIntOrNull(),
                 printk = Utils.readFile(KernelUtils.PRINTK),
                 hasPrintk = Utils.testFile(KernelUtils.PRINTK),
                 tcpCongestionAlgorithm = KernelUtils.getTcpCongestionAlgorithm(context),
@@ -221,6 +190,10 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
                 availableZramCompAlgorithms = KernelUtils.getAvailableZramCompAlgorithms(),
                 swappiness = Utils.readFile(KernelUtils.SWAPPINESS),
                 hasSwappiness = Utils.testFile(KernelUtils.SWAPPINESS),
+                extraFreeKbytes = Utils.readFile(KernelUtils.EXTRA_FREE_KBYTES),
+                hasExtraFreeKbytes = Utils.testFile(KernelUtils.EXTRA_FREE_KBYTES),
+                watermarkScaleFactor = Utils.readFile(KernelUtils.WATERMARK_SCALE_FACTOR),
+                hasWatermarkScaleFactor = Utils.testFile(KernelUtils.WATERMARK_SCALE_FACTOR),
                 hasDirtyRatio = Utils.testFile(KernelUtils.DIRTY_RATIO),
                 dirtyRatio = Utils.readFile(KernelUtils.DIRTY_RATIO),
             )
@@ -248,22 +221,6 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
         }
     }
 
-    fun updateProfile(profile: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            KernelUtils.setKernelProfile(profile)
-        }
-    }
-
-    fun setDmesgRestrict(isChecked: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val value = if (isChecked) 1 else 0
-            Utils.writeFile(KernelUtils.DMESG_RESTRICT, value.toString())
-            _kernelParameters.value = _kernelParameters.value.copy(
-                dmesgRestrict = value,
-            )
-        }
-    }
-
     fun setSchedAutogroup(isChecked: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             val value = if (isChecked) 1 else 0
@@ -281,8 +238,10 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
                 KernelUtils.PRINTK -> _kernelParameters.value.copy(printk = value)
                 KernelUtils.SCHED_LIB_NAME -> _kernelParameters.value.copy(schedLibName = value)
                 KernelUtils.TCP_CONGESTION_ALGORITHM -> _kernelParameters.value.copy(tcpCongestionAlgorithm = value)
-                KernelUtils.SWAPPINESS -> _memory.value.copy(swappiness = value)
-                KernelUtils.DIRTY_RATIO -> _memory.value.copy(dirtyRatio = value)
+                KernelUtils.SWAPPINESS -> _memory.value = _memory.value.copy(swappiness = value)
+                KernelUtils.EXTRA_FREE_KBYTES -> _memory.value = _memory.value.copy(extraFreeKbytes = value)
+                KernelUtils.WATERMARK_SCALE_FACTOR -> _memory.value = _memory.value.copy(watermarkScaleFactor = value)
+                KernelUtils.DIRTY_RATIO -> _memory.value = _memory.value.copy(dirtyRatio = value)
                 KernelUtils.BURST_SMOOTHNESS_LONG -> _boreScheduler.value.copy(burstSmoothnessLong = value)
                 KernelUtils.BURST_SMOOTHNESS_SHORT -> _boreScheduler.value.copy(burstSmoothnessShort = value)
                 KernelUtils.BURST_CACHE_LIFETIME -> _boreScheduler.value.copy(burstCacheLifetime = value)
