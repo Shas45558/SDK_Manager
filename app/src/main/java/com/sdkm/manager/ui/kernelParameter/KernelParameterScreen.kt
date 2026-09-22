@@ -78,6 +78,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -881,7 +882,7 @@ private fun ZramProgressCard(memory: KernelParameterViewModel.Memory) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            LinearWavyProgressIndicator(
+            LinearProgressIndicator(
                 progress = { animatedProgress },
                 modifier = Modifier.fillMaxWidth(),
                 trackColor = MaterialTheme.colorScheme.surfaceContainer,
