@@ -628,7 +628,107 @@ fun GPUMonitorCard(viewModel: SoCViewModel) {
             )
         }
             GPUCard(viewModel)
+            RamMonitorCard(viewModel)
 
+    }
+}
+
+@Composable
+fun RamMonitorCard(viewModel: SoCViewModel) {
+    val ram by viewModel.ramState.collectAsStateWithLifecycle()
+    val progress = remember(ram.usedBytes, ram.totalBytes) {
+        if (ram.totalBytes <= 0L) 0f else (ram.usedBytes.toFloat() / ram.totalBytes.toFloat()).coerceIn(0f, 1f)
+    }
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = ProgressIndicatorDefaults.ProgressAnimationSpec,
+    )
+
+    OutlinedCard(
+        shape = MaterialTheme.shapes.extraLarge,
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.surfaceBright),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(materialsymbols_ic_memory_rounded_filled),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        contentDescription = null,
+                    )
+                    Text(
+                        text = stringResource(R.string.ram),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Button(
+                    onClick = { viewModel.freeRam() },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    shapes = ButtonDefaults.shapes(RoundedCornerShape(20.dp)),
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.EnergySavingsLeaf,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        text = stringResource(R.string.ram_freeer),
+                        modifier = Modifier.padding(start = 4.dp),
+                    )
+                }
+            }
+
+            LinearWavyProgressIndicator(
+                progress = { animatedProgress },
+                modifier = Modifier.fillMaxWidth(),
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Used ${formatRamBytes(ram.usedBytes)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Free ${formatRamBytes(ram.freeBytes)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = "Total ${formatRamBytes(ram.totalBytes)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun formatRamBytes(bytes: Long): String {
+    if (bytes <= 0L) return "0 MB"
+    val mib = bytes / (1024.0 * 1024.0)
+    return if (mib >= 1024.0) {
+        "%.1f GB".format(java.util.Locale.US, mib / 1024.0).replace(".0 GB", " GB")
+    } else {
+        "%.0f MB".format(java.util.Locale.US, mib)
     }
 }
 

@@ -134,16 +134,42 @@
     <string name="uclamp_min">Uclamp min</string>
     <string name="uclamp_min_rt">Uclamp min RT default</string>
     <string name="memory">Memory</string>
-    <string name="zram_warning">It may take a few minutes to change the ZRAM parameters</string>
     <string name="zram_size">ZRAM size</string>
     <string name="swappiness">Swappiness</string>
     <string name="vm_parameters">VM Parameters</string>
     <string name="vm_parameters_desc">Here are some tweaks on SWAP aggressiveness, memory waterline</string>
     <string name="extra_free_kbytes">extra_free_kbytes(KB)</string>
     <string name="watermark_scale_factor">watermark_scale_factor</string>
-    <string name="self_booting">Self-booting</string>
-    <string name="self_booting_desc">Automatically apply the current settings after the phone restarts</string>
-    <string name="self_booting_permission">Need to allow SDKM to start itself</string>
+    <string name="description">Description</string>
+    <string name="ok">OK</string>
+    <string name="swappiness_description">Higher value will be more aggressive use of SWAP, this setting has a hard to perceive impact on smoothness, adjust as appropriate~</string>
+    <string name="extra_free_kbytes_description">This value specifies how much physical memory the Linux kernel will reserve. When the memory is insufficient, it will immediately begin to compress the memory to SWAP/ZRAM, and the device will obviously become slower before the available memory rises to a reasonable range.
+
+Simply put the extra_free_kbytes setting more Larger, the more aggressive the memory recovery (swap or kill process), but it is not recommended to set too large, so as not to waste physical memory and increase the burden on the disk/processor!</string>
+    <string name="watermark_scale_factor_description">The value range is 0~1000, where 1000 means 10%, which means that the difference between the three values of the memory water level line low/min/high (physical RAM capacity) is 10%.
+
+For example (my phone):
+pageSize=4KB
+managed=1951743(pages)
+min_free_kbytes=10900(KB)
+watermark_scale_factor=500
+
+The min value is
+10900(KB)/4 (PageSize)=2725(pages)
+low value is approximately
+1951743*5%+2725≈100312(pages)
+high value is approximately
+1951743*10%+2725≈197899(pages)
+Note: the final low, high The value may be too large due to extra_free_kbytes.
+
+In this example,
+min=2725≈10MB
+low=100312≈392MB
+high=197899≈773MB
+
+means that the memory will start to be recycled if the memory is lower than 392M RAM, until the available RAM is higher than 773MB~</string>
+    <string name="zram_resize">Resize ZRAM</string>
+    <string name="ram_freeer">Free RAM</string>
     <string name="zram_comp_algo">ZRAM compression algorithm</string>
     <string name="no_zram_comp_algo">No available ZRAM compression algorithm found.</string>
     <string name="dirty_ratio">dirty ratio</string>

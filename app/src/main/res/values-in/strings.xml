@@ -122,7 +122,6 @@
     <string name="uclamp_min">Uclamp min</string>
     <string name="uclamp_min_rt">Uclamp min RT bawaan</string>
     <string name="memory">Memori</string>
-    <string name="zram_warning">Mungkin perlu beberapa menit untuk mengubah parameter ZRAM</string>
     <string name="zram_size">Ukuran ZRAM</string>
     <string name="swappiness">Swappiness</string>
     <string name="zram_comp_algo">Algoritma kompresi ZRAM</string>

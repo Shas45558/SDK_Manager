@@ -665,6 +665,9 @@ object SoCUtils {
             total = formatRamBytes(memoryInfo.totalMem),
             free = formatRamBytes(memoryInfo.availMem),
             used = formatRamBytes((memoryInfo.totalMem - memoryInfo.availMem).coerceAtLeast(0L)),
+            totalBytes = memoryInfo.totalMem,
+            freeBytes = memoryInfo.availMem,
+            usedBytes = (memoryInfo.totalMem - memoryInfo.availMem).coerceAtLeast(0L),
         )
     }.getOrElse {
         Log.e(TAG, "getRamMemoryInfo: ${it.message}", it)
@@ -672,6 +675,9 @@ object SoCUtils {
             total = context.getString(R.string.unknown),
             free = context.getString(R.string.unknown),
             used = context.getString(R.string.unknown),
+            totalBytes = 0L,
+            freeBytes = 0L,
+            usedBytes = 0L,
         )
     }
 
@@ -679,6 +685,9 @@ object SoCUtils {
         val total: String,
         val used: String,
         val free: String,
+        val totalBytes: Long,
+        val usedBytes: Long,
+        val freeBytes: Long,
     )
 
     private fun formatRamBytes(bytes: Long): String {
@@ -697,26 +706,5 @@ object SoCUtils {
      * This intentionally does not fall back to CPU/AP temperature, because that
      * would be misleading on MediaTek kernels where RAM has no separate sensor.
      */
-    fun getRamTemperature(context: Context): String = runCatching {
-        val result = Shell.cmd(
-            "for z in /sys/class/thermal/thermal_zone*; do " +
-                "[ -r \$z/type ] || continue; " +
-                "t=\$(cat \$z/type 2>/dev/null); " +
-                "case \"\$t\" in *ram*|*RAM*|*dram*|*DRAM*|*ddr*|*DDR*|*emi*|*EMI*|*mempll*|*MEMPLL*) " +
-                "v=\$(cat \$z/temp 2>/dev/null); " +
-                "case \"\$v\" in ''|'0'|'-127000') continue;; esac; " +
-                "echo \"\$v\"; break;; esac; " +
-                "done"
-        ).exec()
-        val raw = result.out.firstOrNull()?.trim()?.toLongOrNull()
-        if (result.isSuccess && raw != null && raw > 0L) {
-            return "%.1f °C".format(java.util.Locale.US, raw / 1000.0)
-        }
-        "N/A"
-    }.getOrElse {
-        Log.e(TAG, "getRamTemperature: ${it.message}", it)
-        "N/A"
-    }
-
     fun getTotalRam(context: Context): String = getRamMemoryInfo(context).total
 }

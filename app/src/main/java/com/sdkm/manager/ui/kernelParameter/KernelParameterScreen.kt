@@ -31,6 +31,8 @@
 
 package com.sdkm.manager.ui.kernelParameter
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
@@ -845,18 +847,71 @@ fun UclampCard(viewModel: KernelParameterViewModel) {
 }
 
 @Composable
-private fun RamStat(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+private fun ZramProgressCard(memory: KernelParameterViewModel.Memory) {
+    val progress = remember(memory.zramUsedBytes, memory.zramTotalBytes) {
+        if (memory.zramTotalBytes <= 0L) 0f
+        else (memory.zramUsedBytes.toFloat() / memory.zramTotalBytes.toFloat()).coerceIn(0f, 1f)
+    }
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
+    )
+    OutlinedCard(
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.onSurface),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.zram_size),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = formatMemoryBytes(memory.zramTotalBytes),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            LinearWavyProgressIndicator(
+                progress = { animatedProgress },
+                modifier = Modifier.fillMaxWidth(),
+                trackColor = MaterialTheme.colorScheme.surfaceContainer,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Used ${formatMemoryBytes(memory.zramUsedBytes)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Free ${formatMemoryBytes(memory.zramFreeBytes)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+private fun formatMemoryBytes(bytes: Long): String {
+    if (bytes <= 0L) return "0 MB"
+    val mib = bytes / (1024.0 * 1024.0)
+    return if (mib >= 1024.0) {
+        "%.1f GB".format(java.util.Locale.US, mib / 1024.0).replace(".0 GB", " GB")
+    } else {
+        "%.0f MB".format(java.util.Locale.US, mib)
     }
 }
 
@@ -870,9 +925,6 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
 
     val memory by viewModel.memory.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val vmPrefs = remember {
-        context.getSharedPreferences("vm_parameters", android.content.Context.MODE_PRIVATE)
-    }
     var swappiness by remember(memory.swappiness) {
         mutableStateOf(memory.swappiness.toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f)
     }
@@ -883,7 +935,7 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
         mutableStateOf(memory.watermarkScaleFactor.toFloatOrNull()?.coerceIn(0f, 1000f) ?: 0f)
     }
     var dirtyRatio by remember { mutableStateOf(memory.dirtyRatio) }
-    var selfBooting by remember { mutableStateOf(vmPrefs.getBoolean("enabled", false)) }
+    var vmDescription by remember { mutableStateOf<String?>(null) }
 
     // ZCD = ZRAM Compression Dialog
     var openZCD by remember { mutableStateOf(false) }
@@ -913,94 +965,8 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                OutlinedCard(
-                    shape = MaterialTheme.shapes.extraLarge,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceBright,
-                    ),
-                    border = BorderStroke(
-                        width = 2.0.dp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    ),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Text(
-                            text = stringResource(R.string.ram),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            RamStat("Total", memory.ramTotal, Modifier.weight(1f))
-                            RamStat("Used", memory.ramUsed, Modifier.weight(1f))
-                            RamStat("Free", memory.ramFree, Modifier.weight(1f))
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = "RAM temperature",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = memory.ramTemperature,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = stringResource(R.string.zram_size),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = memory.zramSize,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                    }
-                }
-
-                OutlinedCard(
-                    shape = MaterialTheme.shapes.extraLarge,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceBright,
-                    ),
-                    border = BorderStroke(
-                        width = 2.0.dp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    ),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_exclamation),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            contentDescription = null,
-                        )
-                        Text(
-                            text = stringResource(R.string.zram_warning),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
+                if (memory.zramTotalBytes > 0L) {
+                    ZramProgressCard(memory = memory)
                 }
 
                 if (memory.hasSwappiness || memory.hasExtraFreeKbytes || memory.hasWatermarkScaleFactor) {
@@ -1035,11 +1001,12 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                                     valueText = swappiness.toInt().toString(),
                                     value = swappiness,
                                     valueRange = 0f..100f,
+                                    description = stringResource(R.string.swappiness_description),
+                                    onInfoClick = { vmDescription = it },
                                     onValueChange = { swappiness = it },
                                     onValueChangeFinished = {
                                         val value = swappiness.toInt().toString()
                                         viewModel.setValue(KernelUtils.SWAPPINESS, value)
-                                        vmPrefs.edit().putString("swappiness", value).apply()
                                     },
                                 )
                             }
@@ -1050,11 +1017,12 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                                     valueText = "${extraFreeKbytes.toInt()}(${extraFreeKbytes.toInt() / 1024}MB)",
                                     value = extraFreeKbytes,
                                     valueRange = 0f..131072f,
+                                    description = stringResource(R.string.extra_free_kbytes_description),
+                                    onInfoClick = { vmDescription = it },
                                     onValueChange = { extraFreeKbytes = it },
                                     onValueChangeFinished = {
                                         val value = extraFreeKbytes.toInt().toString()
                                         viewModel.setValue(KernelUtils.EXTRA_FREE_KBYTES, value)
-                                        vmPrefs.edit().putString("extra_free_kbytes", value).apply()
                                     },
                                 )
                             }
@@ -1065,64 +1033,45 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                                     valueText = "${watermarkScaleFactor.toInt()}(${watermarkScaleFactor.toInt() / 100f}%)",
                                     value = watermarkScaleFactor,
                                     valueRange = 0f..1000f,
+                                    description = stringResource(R.string.watermark_scale_factor_description),
+                                    onInfoClick = { vmDescription = it },
                                     onValueChange = { watermarkScaleFactor = it },
                                     onValueChangeFinished = {
                                         val value = watermarkScaleFactor.toInt().toString()
                                         viewModel.setValue(KernelUtils.WATERMARK_SCALE_FACTOR, value)
-                                        vmPrefs.edit().putString("watermark_scale_factor", value).apply()
                                     },
                                 )
                             }
-
-                            Surface(
-                                shape = MaterialTheme.shapes.extraLarge,
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_power_settings_new),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(40.dp),
-                                    )
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = stringResource(R.string.self_booting),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.self_booting_desc),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.self_booting_permission),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                    Switch(
-                                        checked = selfBooting,
-                                        onCheckedChange = { enabled ->
-                                            selfBooting = enabled
-                                            vmPrefs.edit()
-                                                .putBoolean("enabled", enabled)
-                                                .putString("swappiness", swappiness.toInt().toString())
-                                                .putString("extra_free_kbytes", extraFreeKbytes.toInt().toString())
-                                                .putString("watermark_scale_factor", watermarkScaleFactor.toInt().toString())
-                                                .apply()
-                                        },
-                                    )
-                                }
-                            }
                         }
+                    }
+                }
+
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(16.dp),
+                    shapes = ButtonDefaults.shapes(RoundedCornerShape(28.dp)),
+                    onClick = {
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://t.me/twrp_mt6768/252"),
+                                ),
+                            )
+                        }
+                    },
+                ) {
+                    Column(Modifier.fillMaxSize()) {
+                        Text(
+                            text = stringResource(R.string.zram_resize),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Text(
+                            text = memory.zramSize,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
                     }
                 }
 
@@ -1193,6 +1142,32 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                 }
             }
         }
+    }
+
+    vmDescription?.let { description ->
+        AlertDialog(
+            onDismissRequest = { vmDescription = null },
+            title = {
+                Text(
+                    text = stringResource(R.string.description),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+            },
+            text = {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { vmDescription = null },
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(R.string.ok))
+                }
+            },
+        )
     }
 
     if (openZCD) {
@@ -1311,6 +1286,8 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
 private fun VmParameterSlider(
     title: String,
     valueText: String,
+    description: String,
+    onInfoClick: (String) -> Unit,
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit,
@@ -1330,7 +1307,9 @@ private fun VmParameterSlider(
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.18f),
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onInfoClick(description) },
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(

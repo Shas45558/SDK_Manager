@@ -36,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sdkm.manager.utils.KernelUtils
-import com.sdkm.manager.utils.SoCUtils
 import com.sdkm.manager.utils.Utils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -68,11 +67,10 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
     )
 
     data class Memory(
-        val ramTotal: String = "N/A",
-        val ramUsed: String = "N/A",
-        val ramFree: String = "N/A",
-        val ramTemperature: String = "N/A",
         val zramSize: String = "N/A",
+        val zramUsedBytes: Long = 0L,
+        val zramFreeBytes: Long = 0L,
+        val zramTotalBytes: Long = 0L,
         val zramCompAlgorithm: String = "N/A",
         val hasZramCompAlgorithm: Boolean = false,
         val availableZramCompAlgorithms: List<String> = emptyList(),
@@ -178,13 +176,12 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
     fun loadMemory() {
         val context = getApplication<Application>()
         viewModelScope.launch(Dispatchers.IO) {
-            val ram = SoCUtils.getRamMemoryInfo(context)
+            val zram = KernelUtils.getZramMemoryInfo()
             _memory.value = Memory(
-                ramTotal = ram.total,
-                ramUsed = ram.used,
-                ramFree = ram.free,
-                ramTemperature = SoCUtils.getRamTemperature(context),
                 zramSize = KernelUtils.getZramSize(context),
+                zramTotalBytes = zram.totalBytes,
+                zramUsedBytes = zram.usedBytes,
+                zramFreeBytes = zram.freeBytes,
                 zramCompAlgorithm = KernelUtils.getZramCompAlgorithm(context),
                 hasZramCompAlgorithm = Utils.testFile(KernelUtils.ZRAM_COMP_ALGORITHM),
                 availableZramCompAlgorithms = KernelUtils.getAvailableZramCompAlgorithms(),
@@ -266,8 +263,13 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
             Utils.writeFile(KernelUtils.ZRAM_SIZE, currentSize)
             KernelUtils.mkswapZram()
             KernelUtils.swaponZram()
+            val zram = KernelUtils.getZramMemoryInfo()
             _memory.value = _memory.value.copy(
                 zramCompAlgorithm = KernelUtils.getZramCompAlgorithm(context),
+                zramTotalBytes = zram.totalBytes,
+                zramUsedBytes = zram.usedBytes,
+                zramFreeBytes = zram.freeBytes,
+                zramSize = KernelUtils.getZramSize(context),
             )
         }
     }

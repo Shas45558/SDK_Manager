@@ -34,6 +34,7 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sdkm.manager.ui.settings.SettingsPreference
+import com.sdkm.manager.utils.KernelUtils
 import com.sdkm.manager.utils.SoCUtils
 import com.sdkm.manager.utils.Utils
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +60,12 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
             val EMPTY = CPUState("N/A", "N/A", "N/A", "N/A", emptyList(), emptyList())
         }
     }
+
+    data class RamState(
+        val totalBytes: Long = 0L,
+        val usedBytes: Long = 0L,
+        val freeBytes: Long = 0L,
+    )
 
     data class GPUState(
         val minFreq: String,
@@ -182,6 +189,9 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
     private val _gpuState = MutableStateFlow(GPUState.EMPTY)
     val gpuState: StateFlow<GPUState> = _gpuState
 
+    private val _ramState = MutableStateFlow(RamState())
+    val ramState: StateFlow<RamState> = _ramState
+
     private val _gpuTemp = MutableStateFlow("N/A")
     val gpuTemp: StateFlow<String> = _gpuTemp
 
@@ -234,6 +244,7 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             loadCPUData()
             loadGPUData()
+            loadRamData(context)
             loadTemperatureAndUsageData(context)
         }
     }
@@ -302,6 +313,23 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
         _hasDefaultPwrlevel.value = Utils.testFile(SoCUtils.DEFAULT_PWRLEVEL)
         _hasAdrenoBoost.value = Utils.testFile(SoCUtils.ADRENO_BOOST)
         _hasGPUThrottling.value = Utils.testFile(SoCUtils.GPU_THROTTLING)
+    }
+
+    private fun loadRamData(context: Context) {
+        val ram = SoCUtils.getRamMemoryInfo(context)
+        _ramState.value = RamState(
+            totalBytes = ram.totalBytes,
+            usedBytes = ram.usedBytes,
+            freeBytes = ram.freeBytes,
+        )
+    }
+
+    fun freeRam() {
+        viewModelScope.launch(Dispatchers.IO) {
+            KernelUtils.freeRam()
+            delay(300)
+            loadRamData(getApplication<Application>())
+        }
     }
 
     private fun loadTemperatureAndUsageData(context: Context) {

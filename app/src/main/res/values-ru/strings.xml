@@ -106,7 +106,6 @@
     <string name="uclamp_min">Uclamp мин.</string>
     <string name="uclamp_min_rt">Uclamp мин. RT по умолчанию</string>
     <string name="memory">Память</string>
-    <string name="zram_warning">Изменение параметров ZRAM может занять несколько минут</string>
     <string name="zram_size">Размер ZRAM</string>
     <string name="zram_comp_algo">Алгоритм сжатия ZRAM</string>
     <string name="bore_scheduler">Планировщик BORE</string>

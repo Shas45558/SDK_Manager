@@ -99,6 +99,33 @@ object KernelUtils {
         context.getString(R.string.unknown)
     }
 
+    data class ZramMemoryInfo(
+        val totalBytes: Long,
+        val usedBytes: Long,
+        val freeBytes: Long,
+    )
+
+    fun getZramMemoryInfo(): ZramMemoryInfo = runCatching {
+        val totalBytes = Utils.readFile(ZRAM_SIZE).trim().toLongOrNull()?.coerceAtLeast(0L) ?: 0L
+        val swapLine = Utils.readFile("/proc/swaps")
+            .lineSequence()
+            .firstOrNull { it.trim().startsWith(ZRAM) }
+        val parts = swapLine?.trim()?.split(Regex("\\s+")) ?: emptyList()
+        val usedBytes = parts.getOrNull(3)?.toLongOrNull()?.times(1024L)?.coerceAtMost(totalBytes) ?: 0L
+        ZramMemoryInfo(totalBytes, usedBytes, (totalBytes - usedBytes).coerceAtLeast(0L))
+    }.getOrElse {
+        Log.e(TAG, "getZramMemoryInfo: ${it.message}", it)
+        ZramMemoryInfo(0L, 0L, 0L)
+    }
+
+    fun freeRam() {
+        runCatching {
+            Shell.cmd("sync; echo 3 > /proc/sys/vm/drop_caches").exec()
+        }.onFailure {
+            Log.e(TAG, "freeRam: ${it.message}", it)
+        }
+    }
+
     fun getZramCompAlgorithm(context: Context): String = runCatching {
         val algorithms = Utils.readFile(ZRAM_COMP_ALGORITHM)
         if (algorithms.isNotEmpty()) {
