@@ -41,12 +41,15 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.expressiveLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -135,10 +138,18 @@ fun SDKMTheme(content: @Composable () -> Unit) {
         ),
     )
 
-    MaterialExpressiveTheme(
-        colorScheme = colorScheme,
-        typography = typography,
-        motionScheme = MotionScheme.expressive(),
-        content = content,
+    val baseDensity = LocalDensity.current
+    val compactDensity = Density(
+        density = baseDensity.density * 0.80f,
+        fontScale = baseDensity.fontScale * 0.80f,
     )
+
+    CompositionLocalProvider(LocalDensity provides compactDensity) {
+        MaterialExpressiveTheme(
+            colorScheme = colorScheme,
+            typography = typography,
+            motionScheme = MotionScheme.expressive(),
+            content = content,
+        )
+    }
 }
