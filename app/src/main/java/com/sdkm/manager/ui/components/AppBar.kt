@@ -32,9 +32,12 @@
 package com.sdkm.manager.ui.components
 
 import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +46,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.core.content.ContextCompat
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -64,6 +68,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_restart_alt_rounded_filled
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_settings_rounded_filled
 import com.sdkm.manager.R
+import com.sdkm.manager.ui.monitor.GameMonitorService
 import com.sdkm.manager.ui.settings.SettingsActivity
 import com.sdkm.manager.utils.Utils
 import kotlinx.coroutines.Dispatchers
@@ -75,6 +80,9 @@ fun SimpleTopAppBar() {
     val scope = rememberCoroutineScope()
 
     var isExpanded by remember { mutableStateOf(false) }
+    var monitorEnabled by remember {
+        mutableStateOf(context.getSharedPreferences("monitor_prefs", android.content.Context.MODE_PRIVATE).getBoolean("enabled", false))
+    }
 
     val rebootMenu = listOf(
         Pair(stringResource(R.string.reboot_system), ""),
@@ -87,6 +95,40 @@ fun SimpleTopAppBar() {
         title = { Text(stringResource(R.string.app_name), maxLines = 1, overflow = TextOverflow.Ellipsis) },
         actions = {
             Row {
+                TooltipBox(
+                    positionProvider =
+                        TooltipDefaults.rememberTooltipPositionProvider(
+                            TooltipAnchorPosition.Below,
+                        ),
+                    tooltip = { PlainTooltip(caretShape = TooltipDefaults.caretShape()) { Text(stringResource(R.string.game_monitor)) } },
+                    state = rememberTooltipState(),
+                ) {
+                    IconButton(
+                        onClick = {
+                            if (!monitorEnabled) {
+                                if (Settings.canDrawOverlays(context)) {
+                                    ContextCompat.startForegroundService(context, Intent(context, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_START))
+                                    monitorEnabled = true
+                                    context.getSharedPreferences("monitor_prefs", android.content.Context.MODE_PRIVATE).edit().putBoolean("enabled", true).apply()
+                                } else {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")),
+                                    )
+                                }
+                            } else {
+                                context.stopService(Intent(context, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_STOP))
+                                monitorEnabled = false
+                                context.getSharedPreferences("monitor_prefs", android.content.Context.MODE_PRIVATE).edit().putBoolean("enabled", false).apply()
+                            }
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MonitorHeart,
+                            contentDescription = stringResource(R.string.game_monitor),
+                            tint = if (monitorEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 TooltipBox(
                     positionProvider =
                         TooltipDefaults.rememberTooltipPositionProvider(
