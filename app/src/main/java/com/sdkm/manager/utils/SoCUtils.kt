@@ -303,6 +303,22 @@ object SoCUtils {
      * e.g. "29 299000". Return the frequency in MHz.
      */
     fun readMtkGpuCurrentFreq(): String = runCatching {
+        // On MT6768 kernels, /sys/kernel/ged/hal/current_freqency can be
+        // stale (often stuck at 299000). The gpufreq var dump reports the
+        // actual DVFS OPP/frequency, so prefer its live values.
+        val varDump = Shell.cmd("cat $MTK_GPU_VAR_DUMP").exec()
+        if (varDump.isSuccess) {
+            val realClock = varDump.out.asSequence()
+                .mapNotNull { Regex("real clock freq\\s*=\\s*(\\d+)").find(it)?.groupValues?.getOrNull(1)?.toLongOrNull() }
+                .firstOrNull()
+            if (realClock != null && realClock > 0) return (realClock / 1000).toString()
+
+            val oppFreq = varDump.out.asSequence()
+                .mapNotNull { Regex("g_cur_opp_freq\\s*=\\s*(\\d+)").find(it)?.groupValues?.getOrNull(1)?.toLongOrNull() }
+                .firstOrNull()
+            if (oppFreq != null && oppFreq > 0) return (oppFreq / 1000).toString()
+        }
+
         val result = Shell.cmd("cat $MTK_GPU_CURRENT_FREQ").exec()
         if (!result.isSuccess) return "0"
         val khz = result.out.asSequence()

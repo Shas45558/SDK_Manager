@@ -16,6 +16,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -44,16 +45,21 @@ class GameMonitorService : Service() {
     private var cpuFreqText: TextView? = null
     private var gpuFreqText: TextView? = null
     private var ramText: TextView? = null
-    private var ramPercentText: TextView? = null
     private var zramText: TextView? = null
-    private var zramPercentText: TextView? = null
     private var cpuBar: ProgressBar? = null
     private var gpuBar: ProgressBar? = null
     private var ramBar: ProgressBar? = null
     private var zramBar: ProgressBar? = null
 
+    private val prefs by lazy { getSharedPreferences(PREFS_NAME, MODE_PRIVATE) }
+    private var showCpu = true
+    private var showGpu = true
+    private var showRam = true
+    private var showZram = true
+
     override fun onCreate() {
         super.onCreate()
+        loadMetricPreferences()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
         if (Settings.canDrawOverlays(this)) showOverlay()
@@ -123,58 +129,52 @@ class GameMonitorService : Service() {
         val ramUsedPercent = if (stats.ramTotal > 0) (stats.ramUsed * 100 / stats.ramTotal).toInt().coerceIn(0, 100) else 0
         val zramUsedPercent = if (stats.zramTotal > 0) (stats.zramUsed * 100 / stats.zramTotal).toInt().coerceIn(0, 100) else 0
 
-        cpuFreqText?.text = "${stats.cpuFreq} MHz"
-        gpuFreqText?.text = "${stats.gpuFreq} MHz"
-        ramText?.text = "${formatBytes(stats.ramUsed)} / ${formatBytes(stats.ramTotal)}"
-        ramPercentText?.text = "$ramUsedPercent%"
-        zramText?.text = "${formatBytes(stats.zramUsed)} / ${formatBytes(stats.zramTotal)}"
-        zramPercentText?.text = "$zramUsedPercent%"
-        cpuBar?.progress = cpuUsage
-        gpuBar?.progress = gpuUsage
-        ramBar?.progress = ramUsedPercent
-        zramBar?.progress = zramUsedPercent
+        cpuFreqText?.text = "CPU ${cpuUsage}%"
+        gpuFreqText?.text = "GPU ${gpuUsage}%"
+        ramText?.text = "RAM ${ramUsedPercent}%"
+        zramText?.text = "ZRAM ${zramUsedPercent}%"
     }
-
 
     private fun showOverlay() {
         if (overlay != null || !Settings.canDrawOverlays(this)) return
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
         val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(8), dp(12), dp(8))
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(7), dp(3), dp(4), dp(3))
             background = GradientDrawable().apply {
-                setColor(Color.argb(238, 8, 20, 35))
-                setStroke(dp(1), Color.rgb(92, 105, 255))
-                cornerRadius = dp(16).toFloat()
+                setColor(Color.argb(150, 8, 16, 28))
+                setStroke(dp(1), Color.argb(120, 92, 105, 255))
+                cornerRadius = dp(9).toFloat()
             }
         }
 
-        val header = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        val title = TextView(this).apply {
-            text = "🎮  Game Monitor"
+        val settings = TextView(this).apply {
+            text = "⚙"
+            textSize = 13f
             setTextColor(Color.WHITE)
-            textSize = 16f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(dp(3), 0, dp(2), 0)
+            setOnClickListener { showMonitorOptions() }
         }
-        header.addView(title, LinearLayout.LayoutParams(0, dp(34), 1f))
-        root.addView(header)
 
-        cpuBar = addMetric(root, "CPU", "0 MHz") { cpuFreqText = it }
-        gpuBar = addMetric(root, "GPU", "0 MHz") { gpuFreqText = it }
-        ramBar = addMemoryMetric(root, "RAM") { ramText = it.first; ramPercentText = it.second }
-        zramBar = addMemoryMetric(root, "ZRAM") { zramText = it.first; zramPercentText = it.second }
+        if (showCpu) addCompactMetric(root, "CPU") { cpuFreqText = it }
+        if (showGpu) addCompactMetric(root, "GPU") { gpuFreqText = it }
+        if (showRam) addCompactMetric(root, "RAM") { ramText = it }
+        if (showZram) addCompactMetric(root, "ZRAM") { zramText = it }
+        root.addView(settings, LinearLayout.LayoutParams(dp(22), dp(24)))
 
         val params = WindowManager.LayoutParams(
-            dp(300),
+            dp(250),
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.END
-            x = dp(10)
-            y = dp(90)
+            x = dp(5)
+            y = dp(70)
         }
 
         makeDraggable(root, params)
@@ -182,60 +182,122 @@ class GameMonitorService : Service() {
         windowManager?.addView(root, params)
     }
 
+    private fun addCompactMetric(root: LinearLayout, label: String, bind: (TextView) -> Unit) {
+        val text = TextView(this).apply {
+            text = "$label 0%"
+            textSize = 9.5f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            setSingleLine(true)
+            setPadding(dp(2), 0, dp(2), 0)
+        }
+        root.addView(text, LinearLayout.LayoutParams(0, dp(24), 1f))
+        bind(text)
+    }
+
+    private fun loadMetricPreferences() {
+        showCpu = prefs.getBoolean(KEY_CPU, true)
+        showGpu = prefs.getBoolean(KEY_GPU, true)
+        showRam = prefs.getBoolean(KEY_RAM, true)
+        showZram = prefs.getBoolean(KEY_ZRAM, true)
+        if (!showCpu && !showGpu && !showRam && !showZram) {
+            showCpu = true
+            prefs.edit().putBoolean(KEY_CPU, true).apply()
+        }
+    }
+
+    private fun showMonitorOptions() {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(4), dp(20), dp(2))
+        }
+        val cpu = CheckBox(this).apply { text = "CPU"; isChecked = showCpu }
+        val gpu = CheckBox(this).apply { text = "GPU"; isChecked = showGpu }
+        val ram = CheckBox(this).apply { text = "RAM"; isChecked = showRam }
+        val zram = CheckBox(this).apply { text = "ZRAM"; isChecked = showZram }
+        box.addView(cpu); box.addView(gpu); box.addView(ram); box.addView(zram)
+
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setTitle("Monitor items")
+            .setView(box)
+            .setNegativeButton("Stop") { _, _ ->
+                stopSelf()
+                prefs.edit().putBoolean("enabled", false).apply()
+            }
+            .setPositiveButton("Apply", null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                if (!cpu.isChecked && !gpu.isChecked && !ram.isChecked && !zram.isChecked) return@setOnClickListener
+                showCpu = cpu.isChecked
+                showGpu = gpu.isChecked
+                showRam = ram.isChecked
+                showZram = zram.isChecked
+                prefs.edit()
+                    .putBoolean(KEY_CPU, showCpu)
+                    .putBoolean(KEY_GPU, showGpu)
+                    .putBoolean(KEY_RAM, showRam)
+                    .putBoolean(KEY_ZRAM, showZram)
+                    .apply()
+                overlay?.let { view -> runCatching { windowManager?.removeView(view) } }
+                overlay = null
+                cpuFreqText = null; gpuFreqText = null; ramText = null; zramText = null
+                showOverlay()
+                dialog.dismiss()
+            }
+        }
+        dialog.window?.setType(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE)
+        dialog.show()
+    }
+
     private fun addMetric(root: LinearLayout, label: String, initialFreq: String, bind: (TextView) -> Unit): ProgressBar {
         val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val top = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         val name = TextView(this).apply {
             text = label
-            textSize = 14f
+            textSize = 11f
             setTextColor(Color.WHITE)
         }
         val freq = TextView(this).apply {
             text = initialFreq
-            textSize = 12f
+            textSize = 10f
             setTextColor(Color.LTGRAY)
             gravity = Gravity.END
         }
-        top.addView(name, LinearLayout.LayoutParams(0, dp(24), 1f))
-        top.addView(freq, LinearLayout.LayoutParams(dp(78), dp(24)))
+        top.addView(name, LinearLayout.LayoutParams(0, dp(18), 1f))
+        top.addView(freq, LinearLayout.LayoutParams(dp(65), dp(18)))
         val bar = progressBar()
         row.addView(top)
-        row.addView(bar, LinearLayout.LayoutParams(-1, dp(7)))
-        row.setPadding(0, dp(2), 0, dp(5))
+        row.addView(bar, LinearLayout.LayoutParams(-1, dp(4)))
+        row.setPadding(0, dp(1), 0, dp(2))
         root.addView(row)
         bind(freq)
         return bar
     }
 
-    private fun addMemoryMetric(root: LinearLayout, label: String, bind: (Pair<TextView, TextView>) -> Unit): ProgressBar {
+    private fun addMemoryMetric(root: LinearLayout, label: String, bind: (TextView) -> Unit): ProgressBar {
         val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val top = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         val name = TextView(this).apply {
             text = label
-            textSize = 14f
+            textSize = 11f
             setTextColor(Color.WHITE)
         }
         val value = TextView(this).apply {
             text = "0 / 0"
-            textSize = 12f
+            textSize = 10f
             setTextColor(Color.LTGRAY)
             gravity = Gravity.END
         }
-        val percent = TextView(this).apply {
-            text = "0%"
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            gravity = Gravity.END
-        }
-        top.addView(name, LinearLayout.LayoutParams(0, dp(24), 1f))
-        top.addView(value, LinearLayout.LayoutParams(dp(110), dp(24)))
-        top.addView(percent, LinearLayout.LayoutParams(dp(40), dp(24)))
+        top.addView(name, LinearLayout.LayoutParams(0, dp(18), 1f))
+        top.addView(value, LinearLayout.LayoutParams(dp(105), dp(18)))
         val bar = progressBar()
         row.addView(top)
-        row.addView(bar, LinearLayout.LayoutParams(-1, dp(7)))
-        row.setPadding(0, dp(2), 0, dp(5))
+        row.addView(bar, LinearLayout.LayoutParams(-1, dp(4)))
+        row.setPadding(0, dp(1), 0, dp(2))
         root.addView(row)
-        bind(value to percent)
+        bind(value)
         return bar
     }
 
@@ -313,5 +375,10 @@ class GameMonitorService : Service() {
         const val ACTION_STOP = "com.sdkm.manager.monitor.STOP"
         private const val CHANNEL_ID = "game_monitor"
         private const val NOTIFICATION_ID = 7001
+        private const val PREFS_NAME = "monitor_prefs"
+        private const val KEY_CPU = "show_cpu"
+        private const val KEY_GPU = "show_gpu"
+        private const val KEY_RAM = "show_ram"
+        private const val KEY_ZRAM = "show_zram"
     }
 }
