@@ -29,6 +29,9 @@
             </intent-filter>
         </activity>
 	<activity
+            android:name=".ui.taskKiller.TaskKillerActivity"
+            android:exported="false" />
+	<activity
 	    android:name=".ui.settings.SettingsActivity"
 	    android:exported="false" />
 	<activity
