@@ -141,7 +141,7 @@ fun SDKMTheme(content: @Composable () -> Unit) {
     val baseDensity = LocalDensity.current
     val compactDensity = Density(
         density = baseDensity.density * 0.80f,
-        fontScale = baseDensity.fontScale * 0.80f,
+        fontScale = baseDensity.fontScale * 0.88f,
     )
 
     CompositionLocalProvider(LocalDensity provides compactDensity) {
