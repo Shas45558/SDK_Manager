@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -70,6 +71,7 @@ import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsy
 import com.sdkm.manager.R
 import com.sdkm.manager.ui.monitor.GameMonitorService
 import com.sdkm.manager.ui.settings.SettingsActivity
+import com.sdkm.manager.ui.taskKiller.TaskKillerActivity
 import com.sdkm.manager.utils.Utils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -126,6 +128,25 @@ fun SimpleTopAppBar() {
                             imageVector = Icons.Filled.MonitorHeart,
                             contentDescription = stringResource(R.string.game_monitor),
                             tint = if (monitorEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                TooltipBox(
+                    positionProvider =
+                        TooltipDefaults.rememberTooltipPositionProvider(
+                            TooltipAnchorPosition.Below,
+                        ),
+                    tooltip = { PlainTooltip(caretShape = TooltipDefaults.caretShape()) { Text(stringResource(R.string.task_killer)) } },
+                    state = rememberTooltipState(),
+                ) {
+                    IconButton(
+                        onClick = {
+                            context.startActivity(Intent(context, TaskKillerActivity::class.java))
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.DeleteSweep,
+                            contentDescription = stringResource(R.string.task_killer),
                         )
                     }
                 }

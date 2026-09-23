@@ -35,6 +35,10 @@
     <string name="settings">Settings</string>
     <string name="reboot_menu">Reboot menu</string>
     <string name="game_monitor">Game Monitor</string>
+    <string name="task_killer">Task Killer</string>
+    <string name="refresh">Refresh</string>
+    <string name="no_running_processes">No user processes found</string>
+
     <string name="reboot_system">Reboot system</string>
     <string name="reboot_recovery">Reboot to recovery</string>
     <string name="reboot_bootloader">Reboot to bootloader</string>
