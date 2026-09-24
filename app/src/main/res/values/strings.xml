@@ -178,6 +178,9 @@ means that the memory will start to be recycled if the memory is lower than 392M
     <string name="zram_comp_algo">ZRAM compression algorithm</string>
     <string name="no_zram_comp_algo">No available ZRAM compression algorithm found.</string>
     <string name="dirty_ratio">dirty ratio</string>
+    <string name="page_cluster">page-cluster</string>
+    <string name="vfs_cache_pressure">vfs cache pressure</string>
+    <string name="dirty_background_ratio">dirty background ratio</string>
     <string name="bore_scheduler">BORE Scheduler</string>
     <string name="bore_desc">BORE (Burst-Oriented Response Enhancer) is an enhanced versions of the EEVDF (Earliest Eligible Virtual Deadline First) Linux schedulers. Developed with the aim of maintaining these schedulers\' high performance while delivering resilient responsiveness to user input under as versatile load scenario as possible.</string>
     <string name="burst_smooth_long">Burst smoothness long</string>

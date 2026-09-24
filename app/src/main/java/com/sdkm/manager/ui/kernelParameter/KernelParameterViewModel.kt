@@ -76,6 +76,12 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
         val availableZramCompAlgorithms: List<String> = emptyList(),
         val swappiness: String = "N/A",
         val hasSwappiness: Boolean = false,
+        val pageCluster: String = "N/A",
+        val hasPageCluster: Boolean = false,
+        val vfsCachePressure: String = "N/A",
+        val hasVfsCachePressure: Boolean = false,
+        val dirtyBackgroundRatio: String = "N/A",
+        val hasDirtyBackgroundRatio: Boolean = false,
         val extraFreeKbytes: String = "N/A",
         val hasExtraFreeKbytes: Boolean = false,
         val watermarkScaleFactor: String = "N/A",
@@ -236,6 +242,9 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
                 KernelUtils.SCHED_LIB_NAME -> _kernelParameters.value.copy(schedLibName = value)
                 KernelUtils.TCP_CONGESTION_ALGORITHM -> _kernelParameters.value.copy(tcpCongestionAlgorithm = value)
                 KernelUtils.SWAPPINESS -> _memory.value = _memory.value.copy(swappiness = value)
+                KernelUtils.PAGE_CLUSTER -> _memory.value = _memory.value.copy(pageCluster = value)
+                KernelUtils.VFS_CACHE_PRESSURE -> _memory.value = _memory.value.copy(vfsCachePressure = value)
+                KernelUtils.DIRTY_BACKGROUND_RATIO -> _memory.value = _memory.value.copy(dirtyBackgroundRatio = value)
                 KernelUtils.EXTRA_FREE_KBYTES -> _memory.value = _memory.value.copy(extraFreeKbytes = value)
                 KernelUtils.WATERMARK_SCALE_FACTOR -> _memory.value = _memory.value.copy(watermarkScaleFactor = value)
                 KernelUtils.DIRTY_RATIO -> _memory.value = _memory.value.copy(dirtyRatio = value)

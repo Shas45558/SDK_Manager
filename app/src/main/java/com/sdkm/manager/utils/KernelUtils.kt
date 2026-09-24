@@ -54,9 +54,12 @@ object KernelUtils {
     const val ZRAM_SIZE = "/sys/block/zram0/disksize"
     const val ZRAM_COMP_ALGORITHM = "/sys/block/zram0/comp_algorithm"
     const val SWAPPINESS = "/proc/sys/vm/swappiness"
+    const val PAGE_CLUSTER = "/proc/sys/vm/page-cluster"
+    const val VFS_CACHE_PRESSURE = "/proc/sys/vm/vfs_cache_pressure"
     const val EXTRA_FREE_KBYTES = "/proc/sys/vm/extra_free_kbytes"
     const val WATERMARK_SCALE_FACTOR = "/proc/sys/vm/watermark_scale_factor"
     const val DIRTY_RATIO = "/proc/sys/vm/dirty_ratio"
+    const val DIRTY_BACKGROUND_RATIO = "/proc/sys/vm/dirty_background_ratio"
 
     const val TCP_CONGESTION_ALGORITHM = "/proc/sys/net/ipv4/tcp_congestion_control"
     const val TCP_AVAILABLE_CONGESTION_ALGORITHM = "/proc/sys/net/ipv4/tcp_available_congestion_control"

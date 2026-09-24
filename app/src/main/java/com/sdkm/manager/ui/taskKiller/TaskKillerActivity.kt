@@ -55,6 +55,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.dp
 import com.sdkm.manager.R
 import com.sdkm.manager.ui.theme.SDKMTheme
@@ -88,7 +90,15 @@ class TaskKillerActivity : ComponentActivity() {
 
         setContent {
             SDKMTheme {
-                TaskKillerScreen(onBack = { finish() })
+                val density = LocalDensity.current
+                CompositionLocalProvider(
+                    LocalDensity provides androidx.compose.ui.unit.Density(
+                        density = density.density * 1.10f,
+                        fontScale = density.fontScale * 1.10f,
+                    ),
+                ) {
+                    TaskKillerScreen(onBack = { finish() })
+                }
             }
         }
     }
@@ -265,32 +275,39 @@ private object TaskKillerUtils {
     fun getRunningProcesses(context: Context): List<RunningProcess> {
         val packageManager = context.packageManager
         val installed = packageManager.getInstalledApplications(0)
+            .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
 
-        val processToPackage = HashMap<String, ApplicationInfo>()
-        for (app in installed) {
-            val process = app.processName
-            if (!process.isNullOrBlank()) {
-                processToPackage.putIfAbsent(process, app)
+        // Root-only process discovery: Android's ActivityManager process list is heavily
+        // restricted on modern Android, so use the kernel-visible process table and map
+        // each UID back to a real installed user package.
+        val uidToPackage = HashMap<Int, String>()
+        val packageOutput = Shell.cmd("cmd package list packages -3 -U").exec()
+        if (packageOutput.isSuccess) {
+            packageOutput.out.forEach { line ->
+                val match = Regex("""package:([^\s]+)\s+uid:(\d+)""").find(line)
+                if (match != null) {
+                    uidToPackage[match.groupValues[2].toIntOrNull() ?: return@forEach] = match.groupValues[1]
+                }
             }
         }
 
-        val output = Shell.cmd("ps -A -o PID,RSS,NAME").exec()
+        val appByPackage = installed.associateBy { it.packageName }
+        val output = Shell.cmd("ps -A -o PID,UID,RSS,NAME").exec()
         if (!output.isSuccess) return emptyList()
 
         return output.out.drop(1).mapNotNull { line ->
-            val match = Regex("""^\s*(\d+)\s+(\d+)\s+(.+?)\s*$""").find(line) ?: return@mapNotNull null
+            val match = Regex("""^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.+?)\s*$""").find(line)
+                ?: return@mapNotNull null
             val pid = match.groupValues[1].toIntOrNull() ?: return@mapNotNull null
-            val rssKb = match.groupValues[2].toLongOrNull() ?: 0L
-            val processName = match.groupValues[3].trim()
+            val uid = match.groupValues[2].toIntOrNull() ?: return@mapNotNull null
+            val rssKb = match.groupValues[3].toLongOrNull() ?: 0L
+            val processName = match.groupValues[4].trim()
             if (pid <= 1 || processName.isBlank()) return@mapNotNull null
 
-            val appInfo = processToPackage[processName]
-                ?: installed.firstOrNull { processName.startsWith("${it.packageName}:") }
-            val packageName = appInfo?.packageName
-            val isSystem = appInfo?.let { (it.flags and ApplicationInfo.FLAG_SYSTEM) != 0 } ?: true
-
-            val appName = appInfo?.loadLabel(packageManager)?.toString()
-                ?: processName.substringAfterLast('/')
+            val packageName = uidToPackage[uid] ?: return@mapNotNull null
+            if (packageName == context.packageName) return@mapNotNull null
+            val appInfo = appByPackage[packageName] ?: return@mapNotNull null
+            val appName = appInfo.loadLabel(packageManager).toString()
 
             RunningProcess(
                 pid = pid,
@@ -298,12 +315,11 @@ private object TaskKillerUtils {
                 packageName = packageName,
                 appName = appName,
                 rssKb = rssKb,
-                canStop = !isSystem && !packageName.isNullOrBlank() && packageName != context.packageName,
+                canStop = true,
             )
         }
-            .filter { it.canStop }
             .groupBy { it.packageName }
-            .map { (_, list) -> list.maxBy { it.rssKb } }
+            .mapNotNull { (_, list) -> list.maxByOrNull { it.rssKb } }
             .sortedByDescending { it.rssKb }
     }
 

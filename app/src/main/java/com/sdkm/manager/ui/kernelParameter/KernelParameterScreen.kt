@@ -917,6 +917,31 @@ private fun formatMemoryBytes(bytes: Long): String {
 }
 
 @Composable
+@Composable
+private fun SimpleKernelValueDialog(
+    title: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    onApply: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { onApply() }),
+            )
+        },
+        confirmButton = { TextButton(onClick = onApply) { Text(stringResource(R.string.change)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
 fun MemoryCard(viewModel: KernelParameterViewModel) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val rotateArrow by animateFloatAsState(
@@ -927,8 +952,11 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
     val memory by viewModel.memory.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var swappiness by remember(memory.swappiness) {
-        mutableStateOf(memory.swappiness.toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f)
+        mutableStateOf(memory.swappiness.toFloatOrNull()?.coerceIn(0f, 200f) ?: 0f)
     }
+    var pageCluster by remember { mutableStateOf(memory.pageCluster) }
+    var vfsCachePressure by remember { mutableStateOf(memory.vfsCachePressure) }
+    var dirtyBackgroundRatio by remember { mutableStateOf(memory.dirtyBackgroundRatio) }
     var extraFreeKbytes by remember(memory.extraFreeKbytes) {
         mutableStateOf(memory.extraFreeKbytes.toFloatOrNull()?.coerceIn(0f, 131072f) ?: 0f)
     }
@@ -942,6 +970,9 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
     var openZCD by remember { mutableStateOf(false) }
     // DR = Dirty Ratio
     var openDR by remember { mutableStateOf(false) }
+    var openPageCluster by remember { mutableStateOf(false) }
+    var openVfsCachePressure by remember { mutableStateOf(false) }
+    var openDirtyBackgroundRatio by remember { mutableStateOf(false) }
 
     ExpandableCard(
         icon = painterResource(materialsymbols_ic_memory_alt_rounded_filled),
@@ -970,7 +1001,7 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                     ZramProgressCard(memory = memory)
                 }
 
-                if (memory.hasSwappiness || memory.hasExtraFreeKbytes || memory.hasWatermarkScaleFactor) {
+                if (memory.hasSwappiness || memory.hasPageCluster || memory.hasVfsCachePressure || memory.hasDirtyBackgroundRatio || memory.hasExtraFreeKbytes || memory.hasWatermarkScaleFactor) {
                     OutlinedCard(
                         shape = MaterialTheme.shapes.extraLarge,
                         colors = CardDefaults.cardColors(
@@ -1001,7 +1032,7 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                                     title = stringResource(R.string.swappiness),
                                     valueText = swappiness.toInt().toString(),
                                     value = swappiness,
-                                    valueRange = 0f..100f,
+                                    valueRange = 0f..200f,
                                     description = stringResource(R.string.swappiness_description),
                                     onInfoClick = { vmDescription = it },
                                     onValueChange = { swappiness = it },
@@ -1105,6 +1136,48 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onPrimary,
                             )
+                        }
+                    }
+                }
+
+                if (memory.hasPageCluster) {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(16.dp),
+                        shapes = ButtonDefaults.shapes(RoundedCornerShape(28.dp)),
+                        onClick = { openPageCluster = true },
+                    ) {
+                        Column(Modifier.fillMaxSize()) {
+                            Text(stringResource(R.string.page_cluster), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimary)
+                            Text(pageCluster, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                }
+
+                if (memory.hasVfsCachePressure) {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(16.dp),
+                        shapes = ButtonDefaults.shapes(RoundedCornerShape(28.dp)),
+                        onClick = { openVfsCachePressure = true },
+                    ) {
+                        Column(Modifier.fillMaxSize()) {
+                            Text(stringResource(R.string.vfs_cache_pressure), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimary)
+                            Text(vfsCachePressure, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                }
+
+                if (memory.hasDirtyBackgroundRatio) {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(16.dp),
+                        shapes = ButtonDefaults.shapes(RoundedCornerShape(28.dp)),
+                        onClick = { openDirtyBackgroundRatio = true },
+                    ) {
+                        Column(Modifier.fillMaxSize()) {
+                            Text(stringResource(R.string.dirty_background_ratio), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimary)
+                            Text(dirtyBackgroundRatio, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimary)
                         }
                     }
                 }
@@ -1236,6 +1309,36 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                     Text(stringResource(R.string.cancel))
                 }
             },
+        )
+    }
+
+    if (openPageCluster) {
+        SimpleKernelValueDialog(
+            title = stringResource(R.string.page_cluster),
+            value = pageCluster,
+            onValueChange = { pageCluster = it },
+            onApply = { viewModel.setValue(KernelUtils.PAGE_CLUSTER, pageCluster); openPageCluster = false },
+            onDismiss = { openPageCluster = false },
+        )
+    }
+
+    if (openVfsCachePressure) {
+        SimpleKernelValueDialog(
+            title = stringResource(R.string.vfs_cache_pressure),
+            value = vfsCachePressure,
+            onValueChange = { vfsCachePressure = it },
+            onApply = { viewModel.setValue(KernelUtils.VFS_CACHE_PRESSURE, vfsCachePressure); openVfsCachePressure = false },
+            onDismiss = { openVfsCachePressure = false },
+        )
+    }
+
+    if (openDirtyBackgroundRatio) {
+        SimpleKernelValueDialog(
+            title = stringResource(R.string.dirty_background_ratio),
+            value = dirtyBackgroundRatio,
+            onValueChange = { dirtyBackgroundRatio = it },
+            onApply = { viewModel.setValue(KernelUtils.DIRTY_BACKGROUND_RATIO, dirtyBackgroundRatio); openDirtyBackgroundRatio = false },
+            onDismiss = { openDirtyBackgroundRatio = false },
         )
     }
 

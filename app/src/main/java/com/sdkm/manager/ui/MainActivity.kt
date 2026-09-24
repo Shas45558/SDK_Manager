@@ -82,6 +82,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.lifecycleScope
 import com.sdkm.manager.BuildConfig
 import com.sdkm.manager.R
@@ -111,7 +113,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             SDKMTheme {
-                SDKMApp()
+                val density = LocalDensity.current
+                CompositionLocalProvider(
+                    LocalDensity provides androidx.compose.ui.unit.Density(
+                        density = density.density * 1.10f,
+                        fontScale = density.fontScale * 1.10f,
+                    ),
+                ) {
+                    SDKMApp()
+                }
             }
         }
     }
