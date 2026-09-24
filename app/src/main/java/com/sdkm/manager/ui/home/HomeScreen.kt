@@ -10,80 +10,40 @@
 
 package com.sdkm.manager.ui.home
 
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.DeleteSweep
-import androidx.compose.material.icons.rounded.DeveloperBoard
-import androidx.compose.material.icons.rounded.ExitToApp
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Memory
-import androidx.compose.material.icons.rounded.MonitorHeart
-import androidx.compose.material.icons.rounded.RestartAlt
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Card
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -91,31 +51,16 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_android_rounded_filled
-import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_memory_rounded_filled
-import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_mobile_info_rounded_filled
-import com.sdkm.manager.R
-import com.sdkm.manager.ui.monitor.GameMonitorService
-import com.sdkm.manager.ui.settings.SettingsActivity
 import com.sdkm.manager.ui.battery.BatteryViewModel
 import com.sdkm.manager.ui.soc.SoCViewModel
-import com.sdkm.manager.ui.taskKiller.TaskKillerActivity
-import com.sdkm.manager.ui.navigation.KernelSettingsRoute
-import com.sdkm.manager.utils.Utils
-import androidx.core.content.ContextCompat
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.ColumnScope
+import com.sdkm.manager.ui.components.SimpleTopAppBar
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavController) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
     val socViewModel: SoCViewModel = viewModel()
     val batteryViewModel: BatteryViewModel = viewModel()
-    var showReboot by rememberSaveable { mutableStateOf(false) }
-    var showAbout by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(context) {
         viewModel.loadAppVersion(context)
@@ -142,10 +87,12 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
         }
     }
 
-    val deviceInfo by viewModel.deviceInfo.collectAsStateWithLifecycle()
-    val appVersion by viewModel.appVersion.collectAsStateWithLifecycle()
     val zramMemory by viewModel.zramMemory.collectAsStateWithLifecycle()
     val cpuState by socViewModel.cpu0State.collectAsStateWithLifecycle()
+    val hasBigCluster by socViewModel.hasBigCluster.collectAsStateWithLifecycle()
+    val bigClusterState by socViewModel.bigClusterState.collectAsStateWithLifecycle()
+    val hasPrimeCluster by socViewModel.hasPrimeCluster.collectAsStateWithLifecycle()
+    val primeClusterState by socViewModel.primeClusterState.collectAsStateWithLifecycle()
     val gpuState by socViewModel.gpuState.collectAsStateWithLifecycle()
     val cpuUsage by socViewModel.cpuUsage.collectAsStateWithLifecycle()
     val gpuUsage by socViewModel.gpuUsage.collectAsStateWithLifecycle()
@@ -166,91 +113,10 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
         if (gpuHistory.size > 32) gpuHistory.removeAt(0)
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = MaterialTheme.colorScheme.surface,
-                drawerShape = RoundedCornerShape(topEnd = 18.dp, bottomEnd = 18.dp),
-            ) {
-                Spacer(Modifier.height(22.dp))
-                Row(
-                    modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Rounded.Tune, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
-                    Spacer(Modifier.width(14.dp))
-                    Column {
-                        Text("SDKM", style = MaterialTheme.typography.titleLarge)
-                        Text("Kernel & System Manager", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
-                DrawerItem("Home", Icons.Rounded.Home, selected = true) { scope.launch { drawerState.close() } }
-                DrawerItem("CPU", Icons.Rounded.Memory) {
-                    scope.launch { drawerState.close() }
-                    navController.navigate("cpu")
-                }
-                DrawerItem("GPU", Icons.Rounded.DeveloperBoard) {
-                    scope.launch { drawerState.close() }
-                    navController.navigate("gpu")
-                }
-                DrawerItem("Monitor", Icons.Rounded.MonitorHeart) {
-                    scope.launch { drawerState.close() }
-                    if (Settings.canDrawOverlays(context)) {
-                        ContextCompat.startForegroundService(context, Intent(context, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_START))
-                    } else {
-                        context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")))
-                    }
-                }
-                DrawerItem("Task Killer", Icons.Rounded.DeleteSweep) {
-                    scope.launch { drawerState.close() }
-                    context.startActivity(Intent(context, TaskKillerActivity::class.java))
-                }
-                DrawerItem("Kernel Settings", Icons.Rounded.Memory) {
-                    scope.launch { drawerState.close() }
-                    navController.navigate(KernelSettingsRoute)
-                }
-                DrawerItem("Settings", Icons.Rounded.Settings) {
-                    scope.launch { drawerState.close() }
-                    context.startActivity(Intent(context, SettingsActivity::class.java))
-                }
-                DrawerItem("Reboot", Icons.Rounded.RestartAlt) {
-                    scope.launch { drawerState.close() }
-                    showReboot = true
-                }
-                DrawerItem("About", Icons.Rounded.Info) {
-                    scope.launch { drawerState.close() }
-                    showAbout = true
-                }
-                Spacer(Modifier.weight(1f))
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                DrawerItem("Exit", Icons.Rounded.ExitToApp) {
-                    (context as? Activity)?.finish()
-                }
-                Spacer(Modifier.height(16.dp))
-            }
-        },
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text("SDKM", maxLines = 1)
-                            Text("Dashboard", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Rounded.Tune, contentDescription = "Menu")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
-                )
-            },
-        ) { innerPadding ->
-            LazyColumn(
+    Scaffold(
+        topBar = { SimpleTopAppBar(title = "SDKM", subtitle = "Dashboard") },
+    ) { innerPadding ->
+        LazyColumn(
                 modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = innerPadding.calculateTopPadding() + 10.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -266,21 +132,24 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                                 title = "Little",
                                 current = cpuState.currentFreq,
                                 max = cpuState.maxFreq,
+                                governor = cpuState.gov,
                                 modifier = Modifier.weight(1f),
                             )
-                            if (socViewModel.hasBigCluster.collectAsStateWithLifecycle().value) {
+                            if (hasBigCluster) {
                                 ClusterChip(
                                     title = "Big",
-                                    current = socViewModel.bigClusterState.collectAsStateWithLifecycle().value.currentFreq,
-                                    max = socViewModel.bigClusterState.collectAsStateWithLifecycle().value.maxFreq,
+                                    current = bigClusterState.currentFreq,
+                                    max = bigClusterState.maxFreq,
+                                    governor = bigClusterState.gov,
                                     modifier = Modifier.weight(1f),
                                 )
                             }
-                            if (socViewModel.hasPrimeCluster.collectAsStateWithLifecycle().value) {
+                            if (hasPrimeCluster) {
                                 ClusterChip(
                                     title = "Prime",
-                                    current = socViewModel.primeClusterState.collectAsStateWithLifecycle().value.currentFreq,
-                                    max = socViewModel.primeClusterState.collectAsStateWithLifecycle().value.maxFreq,
+                                    current = primeClusterState.currentFreq,
+                                    max = primeClusterState.maxFreq,
+                                    governor = primeClusterState.gov,
                                     modifier = Modifier.weight(1f),
                                 )
                             }
@@ -308,8 +177,16 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                                 }
                             }
                         }
-                        CompactRow("Governor", cpuState.gov)
-                        CompactRow("Max", cpuState.maxFreq + " MHz")
+                        CompactRow("Little Governor", cpuState.gov)
+                        CompactRow("Little Max", cpuState.maxFreq + " MHz")
+                        if (hasBigCluster) {
+                            CompactRow("Big Governor", bigClusterState.gov)
+                            CompactRow("Big Max", bigClusterState.maxFreq + " MHz")
+                        }
+                        if (hasPrimeCluster) {
+                            CompactRow("Prime Governor", primeClusterState.gov)
+                            CompactRow("Prime Max", primeClusterState.maxFreq + " MHz")
+                        }
                     }
                 }
                 item {
@@ -341,92 +218,13 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
         }
     }
 
-    if (showReboot) {
-        AlertDialog(
-            onDismissRequest = { showReboot = false },
-            title = { Text("Reboot") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { showReboot = false; Utils.reboot("") },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    ) { Text("Normal") }
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { showReboot = false; Utils.reboot("recovery") },
-                    ) { Text("Recovery") }
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { showReboot = false; Utils.reboot("bootloader") },
-                    ) { Text("Bootloader") }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showReboot = false }) { Text("Cancel") } },
-        )
-    }
 
-    if (showAbout) {
-        AlertDialog(
-            onDismissRequest = { showAbout = false },
-            title = { Text("About") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    AboutSection("SDKM About") {
-                        CompactRow("Version", appVersion)
-                        Button(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = {
-                                runCatching {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Shas45558/SDK_Manager"))
-                                    )
-                                }
-                            },
-                        ) {
-                            Text("Source")
-                        }
-                        Button(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = {
-                                runCatching {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/ocmt6768"))
-                                    )
-                                }
-                            },
-                        ) {
-                            Text("Telegram")
-                        }
-                    }
 
-                    AboutSection("System About") {
-                        CompactRow("Device", "${deviceInfo.manufacturer} ${deviceInfo.deviceName}")
-                        CompactRow("Codename", deviceInfo.deviceCodename)
-                        CompactRow("Android", deviceInfo.androidVersion)
-                        CompactRow("SDK", deviceInfo.sdkVersion.toString())
-                        CompactRow("Kernel", deviceInfo.fullKernelVersion.ifBlank { deviceInfo.kernelVersion })
-                        if (deviceInfo.hasWireGuard) {
-                            CompactRow("WireGuard", deviceInfo.wireGuard)
-                        }
-                        CompactRow("Root", "ACTIVE")
-                    }
-                }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { showAbout = false }) {
-                    Text("OK")
-                }
-            },
-        )
-    }
+
 }
 
 @Composable
-private fun ClusterChip(title: String, current: String, max: String, modifier: Modifier = Modifier) {
+private fun ClusterChip(title: String, current: String, max: String, governor: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
@@ -438,6 +236,7 @@ private fun ClusterChip(title: String, current: String, max: String, modifier: M
                 Text("$current MHz", style = MaterialTheme.typography.bodyMedium)
                 Text("/ $max", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Text(governor, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1)
         }
     }
 }
@@ -460,41 +259,6 @@ private fun DashboardBatterySection(batteryInfo: BatteryViewModel.BatteryInfo) {
         CompactRow("Temperature", batteryInfo.temp)
         CompactRow("Level", discharged)
         MiniBar(level / 100f)
-    }
-}
-
-@Composable
-private fun DrawerItem(title: String, icon: ImageVector, selected: Boolean = false, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp).fillMaxWidth().clip(RoundedCornerShape(9.dp)).clickable(onClick = onClick),
-        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
-    ) {
-        Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, modifier = Modifier.size(21.dp), tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.width(16.dp))
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-        }
-    }
-}
-
-@Composable
-private fun AboutSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            title,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 3.dp),
-        )
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-            shape = RoundedCornerShape(9.dp),
-        ) {
-            Column(
-                Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                content = content,
-            )
-        }
     }
 }
 

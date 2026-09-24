@@ -93,6 +93,7 @@ import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.sdkm.manager.ui.navigation.HomeRoute
 
 class MainActivity : ComponentActivity() {
     private var isRoot by mutableStateOf(false)
@@ -127,6 +128,8 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
+        const val EXTRA_START_ROUTE = "sdkm_start_route"
+
         init {
             @Suppress("DEPRECATION")
             if (Shell.getCachedShell() == null) {
@@ -236,7 +239,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     } else {
-                        SDKMNavHost()
+                        SDKMNavHost(startDestination = intent.getStringExtra(EXTRA_START_ROUTE) ?: HomeRoute)
                     }
                 }
             }

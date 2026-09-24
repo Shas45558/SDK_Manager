@@ -36,8 +36,8 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -73,11 +73,18 @@ import com.sdkm.manager.ui.monitor.GameMonitorService
 import com.sdkm.manager.ui.settings.SettingsActivity
 import com.sdkm.manager.ui.taskKiller.TaskKillerActivity
 import com.sdkm.manager.utils.Utils
+import com.sdkm.manager.ui.navigation.LocalSDKMDrawer
+import com.sdkm.manager.ui.MainActivity
+import com.sdkm.manager.ui.navigation.BatteryRoute
+import com.sdkm.manager.ui.navigation.CpuRoute
+import com.sdkm.manager.ui.navigation.GpuRoute
+import com.sdkm.manager.ui.navigation.HomeRoute
+import com.sdkm.manager.ui.navigation.KernelSettingsRoute
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Composable
-fun SimpleTopAppBar() {
+fun SimpleTopAppBar(title: String = "SDKM", subtitle: String? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -94,7 +101,21 @@ fun SimpleTopAppBar() {
     )
 
     TopAppBar(
-        title = { Text(stringResource(R.string.app_name), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        title = {
+            if (subtitle == null) {
+                Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            } else {
+                androidx.compose.foundation.layout.Column {
+                    Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        },
+        navigationIcon = {
+            IconButton(onClick = LocalSDKMDrawer.current) {
+                Icon(Icons.Filled.Menu, contentDescription = "Menu")
+            }
+        },
         actions = {
             Row {
                 TooltipBox(
@@ -210,6 +231,73 @@ fun SimpleTopAppBar() {
 }
 
 @Composable
+fun SDKMStandaloneHamburgerMenu() {
+    val context = LocalContext.current
+    var expanded by remember { mutableStateOf(false) }
+
+    fun openMain(route: String) {
+        context.startActivity(
+            Intent(context, MainActivity::class.java).putExtra(MainActivity.EXTRA_START_ROUTE, route),
+        )
+    }
+
+    IconButton(onClick = { expanded = true }) {
+        Icon(Icons.Filled.Menu, contentDescription = "Menu")
+    }
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false },
+        shape = MaterialTheme.shapes.large,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        listOf(
+            "Home" to HomeRoute,
+            "CPU" to CpuRoute,
+            "GPU" to GpuRoute,
+            "Battery" to BatteryRoute,
+            "Kernel Settings" to KernelSettingsRoute,
+        ).forEach { (label, route) ->
+            DropdownMenuItem(
+                text = { Text(label) },
+                onClick = { expanded = false; openMain(route) },
+            )
+        }
+        DropdownMenuItem(
+            text = { Text("Task Killer") },
+            onClick = {
+                expanded = false
+                context.startActivity(Intent(context, TaskKillerActivity::class.java))
+            },
+        )
+        DropdownMenuItem(
+            text = { Text("Settings") },
+            onClick = {
+                expanded = false
+                context.startActivity(Intent(context, SettingsActivity::class.java))
+            },
+        )
+        DropdownMenuItem(
+            text = { Text("Reboot") },
+            onClick = {
+                expanded = false
+                scopeReboot()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text("Exit") },
+            onClick = {
+                expanded = false
+                (context as? android.app.Activity)?.finishAffinity()
+            },
+        )
+    }
+}
+
+private fun scopeReboot() {
+    Utils.reboot("")
+}
+
+@Composable
 fun TopAppBarWithBackButton(text: String, onBack: () -> Unit, scrollBehavior: TopAppBarScrollBehavior) {
     LargeFlexibleTopAppBar(
         title = {
@@ -219,20 +307,7 @@ fun TopAppBarWithBackButton(text: String, onBack: () -> Unit, scrollBehavior: To
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        navigationIcon = {
-            TooltipBox(
-                positionProvider =
-                    TooltipDefaults.rememberTooltipPositionProvider(
-                        TooltipAnchorPosition.Below,
-                    ),
-                tooltip = { PlainTooltip(caretShape = TooltipDefaults.caretShape()) { Text(stringResource(R.string.back)) } },
-                state = rememberTooltipState(),
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                }
-            }
-        },
+        navigationIcon = { SDKMStandaloneHamburgerMenu() },
         scrollBehavior = scrollBehavior,
     )
 }

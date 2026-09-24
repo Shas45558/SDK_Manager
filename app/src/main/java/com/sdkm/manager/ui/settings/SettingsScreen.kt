@@ -31,7 +31,6 @@
 
 package com.sdkm.manager.ui.settings
 
-import android.app.Activity
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
@@ -83,7 +82,7 @@ import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsy
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_light_mode_rounded_filled
 import com.sdkm.manager.R
 import com.sdkm.manager.ui.components.ListItem
-import com.sdkm.manager.ui.components.TopAppBarWithBackButton
+import com.sdkm.manager.ui.components.SDKMStandaloneHamburgerMenu
 import com.sdkm.manager.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -104,10 +103,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBarWithBackButton(
-                text = stringResource(R.string.settings),
-                onBack = { (context as? Activity)?.finish() },
-                scrollBehavior = scrollBehavior,
+            androidx.compose.material3.TopAppBar(
+                title = { Text(stringResource(R.string.settings)) },
+                navigationIcon = { SDKMStandaloneHamburgerMenu() },
             )
         },
     ) { innerPadding ->

@@ -37,6 +37,7 @@ import com.sdkm.manager.ui.settings.SettingsPreference
 import com.sdkm.manager.utils.KernelUtils
 import com.sdkm.manager.utils.SoCUtils
 import com.sdkm.manager.utils.Utils
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -105,54 +106,25 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
             availableGovPath = SoCUtils.AVAILABLE_GOV_CPU0,
         )
 
-        data class Big(val cpuIndex: Int) :
-            ClusterConfig(
-                name = "big",
-                minFreqPath = when (cpuIndex) {
-                    3 -> SoCUtils.MIN_FREQ_CPU3
-                    4 -> SoCUtils.MIN_FREQ_CPU4
-                    else -> SoCUtils.MIN_FREQ_CPU6
-                },
-                maxFreqPath = when (cpuIndex) {
-                    3 -> SoCUtils.MAX_FREQ_CPU3
-                    4 -> SoCUtils.MAX_FREQ_CPU4
-                    else -> SoCUtils.MAX_FREQ_CPU6
-                },
-                currentFreqPath = when (cpuIndex) {
-                    3 -> SoCUtils.CURRENT_FREQ_CPU3
-                    4 -> SoCUtils.CURRENT_FREQ_CPU4
-                    else -> SoCUtils.CURRENT_FREQ_CPU6
-                },
-                govPath = when (cpuIndex) {
-                    3 -> SoCUtils.GOV_CPU3
-                    4 -> SoCUtils.GOV_CPU4
-                    else -> SoCUtils.GOV_CPU6
-                },
-                availableFreqPath = when (cpuIndex) {
-                    3 -> SoCUtils.AVAILABLE_FREQ_CPU3
-                    4 -> SoCUtils.AVAILABLE_FREQ_CPU4
-                    else -> SoCUtils.AVAILABLE_FREQ_CPU6
-                },
-                availableGovPath = when (cpuIndex) {
-                    3 -> SoCUtils.AVAILABLE_GOV_CPU3
-                    4 -> SoCUtils.AVAILABLE_GOV_CPU4
-                    else -> SoCUtils.AVAILABLE_GOV_CPU6
-                },
-                availableBoostFreqPath = when (cpuIndex) {
-                    3 -> SoCUtils.AVAILABLE_BOOST_CPU3
-                    4 -> SoCUtils.AVAILABLE_BOOST_CPU4
-                    else -> SoCUtils.AVAILABLE_BOOST_CPU6
-                },
-            )
+        data class Big(val cpuIndex: Int) : ClusterConfig(
+            name = "big",
+            minFreqPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_min_freq",
+            maxFreqPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_max_freq",
+            currentFreqPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_cur_freq",
+            govPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_governor",
+            availableFreqPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_available_frequencies",
+            availableGovPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_available_governors",
+            availableBoostFreqPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_boost_frequencies",
+        )
 
-        object Prime : ClusterConfig(
+        data class Prime(val cpuIndex: Int) : ClusterConfig(
             name = "prime",
-            minFreqPath = SoCUtils.MIN_FREQ_CPU7,
-            maxFreqPath = SoCUtils.MAX_FREQ_CPU7,
-            currentFreqPath = SoCUtils.CURRENT_FREQ_CPU7,
-            govPath = SoCUtils.GOV_CPU7,
-            availableFreqPath = SoCUtils.AVAILABLE_FREQ_CPU7,
-            availableGovPath = SoCUtils.AVAILABLE_GOV_CPU7,
+            minFreqPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_min_freq",
+            maxFreqPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_max_freq",
+            currentFreqPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_cur_freq",
+            govPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_governor",
+            availableFreqPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_available_frequencies",
+            availableGovPath = "/sys/devices/system/cpu/cpufreq/policy$cpuIndex/scaling_available_governors",
         )
     }
 
@@ -218,6 +190,7 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
 
     private var job: Job? = null
     private var detectedBigClusterConfig: ClusterConfig.Big? = null
+    private var detectedPrimeClusterConfig: ClusterConfig.Prime? = null
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -257,15 +230,18 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
         _cpuCoreMetrics.value = SoCUtils.readCpuCoreMetrics()
         _cpu0State.value = loadClusterState(ClusterConfig.Little)
 
-        detectedBigClusterConfig = detectBigClusterConfig()
+        val detectedClusters = detectClusterConfigs()
+        detectedBigClusterConfig = detectedClusters.first
+        detectedPrimeClusterConfig = detectedClusters.second
+
         _hasBigCluster.value = detectedBigClusterConfig != null
         detectedBigClusterConfig?.let { config ->
             _bigClusterState.value = loadClusterStateWithBoost(config)
         }
 
-        _hasPrimeCluster.value = Utils.testFile(SoCUtils.AVAILABLE_FREQ_CPU7)
-        if (_hasPrimeCluster.value) {
-            _primeClusterState.value = loadClusterState(ClusterConfig.Prime)
+        _hasPrimeCluster.value = detectedPrimeClusterConfig != null
+        detectedPrimeClusterConfig?.let { config ->
+            _primeClusterState.value = loadClusterState(config)
         }
 
         _hasCpuInputBoostMs.value = Utils.testFile(SoCUtils.CPU_INPUT_BOOST_MS)
@@ -351,13 +327,25 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
         _gpuUsage.value = SoCUtils.getGpuUsage(context)
     }
 
-    private fun detectBigClusterConfig(): ClusterConfig.Big? {
-        return when {
-            Utils.testFile(SoCUtils.AVAILABLE_FREQ_CPU3) -> ClusterConfig.Big(3)
-            Utils.testFile(SoCUtils.AVAILABLE_FREQ_CPU4) -> ClusterConfig.Big(4)
-            Utils.testFile(SoCUtils.AVAILABLE_FREQ_CPU6) -> ClusterConfig.Big(6)
-            else -> null
-        }
+    private fun detectClusterConfigs(): Pair<ClusterConfig.Big?, ClusterConfig.Prime?> {
+        val policies = File("/sys/devices/system/cpu/cpufreq").listFiles()
+            ?.mapNotNull { dir ->
+                val index = dir.name.removePrefix("policy").toIntOrNull() ?: return@mapNotNull null
+                if (index == 0 || !dir.isDirectory) return@mapNotNull null
+                val availablePath = File(dir, "scaling_available_frequencies").absolutePath
+                if (!Utils.testFile(availablePath)) return@mapNotNull null
+                val max = Utils.readFile(File(dir, "scaling_max_freq").absolutePath).trim().toLongOrNull() ?: 0L
+                if (max <= 0L) return@mapNotNull null
+                Triple(index, max, availablePath)
+            }
+            ?.sortedWith(compareBy<Triple<Int, Long, String>> { it.second }.thenBy { it.first })
+            ?: emptyList()
+
+        if (policies.isEmpty()) return null to null
+
+        val big = ClusterConfig.Big(policies.first().first)
+        val prime = if (policies.size >= 2) ClusterConfig.Prime(policies.last().first) else null
+        return big to prime
     }
 
     private fun loadClusterState(config: ClusterConfig): CPUState {
@@ -400,8 +388,8 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             when (cluster) {
                 ClusterConfig.Little.name -> updateLittleClusterFreq(target, selectedFreq)
-                ClusterConfig.Big(4).name, ClusterConfig.Big(6).name -> updateBigClusterFreq(target, selectedFreq)
-                ClusterConfig.Prime.name -> updatePrimeClusterFreq(target, selectedFreq)
+                "big" -> updateBigClusterFreq(target, selectedFreq)
+                "prime" -> updatePrimeClusterFreq(target, selectedFreq)
                 "gpu" -> updateGPUFreq(target, selectedFreq)
             }
         }
@@ -430,7 +418,7 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun updatePrimeClusterFreq(target: String, selectedFreq: String) {
-        val config = ClusterConfig.Prime
+        val config = detectedPrimeClusterConfig ?: return
         val path = if (target == "min") config.minFreqPath else config.maxFreqPath
         SoCUtils.writeFreqCPU(path, selectedFreq)
 
@@ -477,8 +465,8 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
     private fun getGovernorPath(cluster: String): String? {
         return when (cluster) {
             ClusterConfig.Little.name -> ClusterConfig.Little.govPath
-            ClusterConfig.Big(4).name, ClusterConfig.Big(6).name -> detectedBigClusterConfig?.govPath
-            ClusterConfig.Prime.name -> ClusterConfig.Prime.govPath
+            "big" -> detectedBigClusterConfig?.govPath
+            "prime" -> detectedPrimeClusterConfig?.govPath
             "gpu" -> if (SoCUtils.isMtkGpu()) null else SoCUtils.GOV_GPU
             else -> null
         }
@@ -491,11 +479,11 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
                 _cpu0State.value = _cpu0State.value.copy(gov = newGovernor)
             }
 
-            ClusterConfig.Big(4).name, ClusterConfig.Big(6).name -> {
+            "big" -> {
                 _bigClusterState.value = _bigClusterState.value.copy(gov = newGovernor)
             }
 
-            ClusterConfig.Prime.name -> {
+            "prime" -> {
                 _primeClusterState.value = _primeClusterState.value.copy(gov = newGovernor)
             }
 

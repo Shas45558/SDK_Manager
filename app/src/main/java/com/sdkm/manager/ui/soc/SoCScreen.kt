@@ -62,7 +62,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.ElectricBolt
 import androidx.compose.material.icons.rounded.EnergySavingsLeaf
 import androidx.compose.material3.AlertDialog
@@ -199,14 +198,7 @@ fun SoCScreen(
             if (section == SocSection.ALL) {
                 SimpleTopAppBar()
             } else {
-                androidx.compose.material3.TopAppBar(
-                    title = { Text(if (section == SocSection.CPU) "CPU" else "GPU") },
-                    navigationIcon = {
-                        androidx.compose.material3.IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                )
+                SimpleTopAppBar(title = if (section == SocSection.CPU) "CPU" else "GPU")
             }
         },
         bottomBar = {
