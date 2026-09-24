@@ -363,6 +363,7 @@ private fun CompactRow(title: String, value: String, onClick: (() -> Unit)? = nu
 
 @Composable
 private fun MiniUsageGraph(values: List<Float>, modifier: Modifier = Modifier) {
+    val graphColor = MaterialTheme.colorScheme.primary
     Canvas(modifier.clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(6.dp)) {
         if (values.size < 2) return@Canvas
         val path = Path()
@@ -371,7 +372,7 @@ private fun MiniUsageGraph(values: List<Float>, modifier: Modifier = Modifier) {
             val y = size.height - (value / 100f * size.height)
             if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
-        drawPath(path, MaterialTheme.colorScheme.primary, style = Stroke(width = 3f, cap = StrokeCap.Round))
+        drawPath(path, graphColor, style = Stroke(width = 3f, cap = StrokeCap.Round))
     }
 }
 
@@ -384,8 +385,6 @@ private fun MiniBar(value: Float) {
 
 private fun formatBytes(bytes: Long): String {
     if (bytes <= 0L) return "N/A"
-    val gb = bytes / 1073741824f
-    return if (gb >= 1f) String.format(Locale.US, "%.1f GB", gb) else String.format(Locale.US, "%.0f MB", bytes / 1048576f)
     if (bytes >= 1073741824L) {
         val tenths = bytes / 107374182L
         return "${tenths / 10}.${tenths % 10} GB"
