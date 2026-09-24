@@ -218,11 +218,6 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
         }
     }
 
-
-
-
-}
-
 @Composable
 private fun ClusterChip(title: String, current: String, max: String, governor: String, modifier: Modifier = Modifier) {
     Card(
