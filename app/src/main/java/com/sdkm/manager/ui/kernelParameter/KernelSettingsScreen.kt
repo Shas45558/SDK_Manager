@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +62,7 @@ fun KernelSettingsScreen(
             navigationIcon = {
                 androidx.compose.material3.IconButton(onClick = { navController.navigateUp() }) {
                     androidx.compose.material3.Icon(
-                        androidx.compose.material.icons.automirrored.filled.ArrowBack,
+                        Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                     )
                 }

@@ -218,7 +218,8 @@ object BatteryUtils {
         callback: (voltage: String, current: String, power: String, status: String) -> Unit,
     ): BroadcastReceiver = registerBatteryListener(context) { intent ->
         val voltageMv = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1)
-        val currentUa = intent.getIntExtra(BatteryManager.EXTRA_CURRENT_NOW, 0)
+        val batteryManager = context.getSystemService(BatteryManager::class.java)
+        val currentUa = batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) ?: 0
         val voltage = if (voltageMv > 0) voltageMv / 1000f else 0f
         val currentMa = kotlin.math.abs(currentUa) / 1000f
         val powerW = voltage * currentMa / 1000f
