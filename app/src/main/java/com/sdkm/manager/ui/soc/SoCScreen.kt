@@ -209,7 +209,11 @@ fun SoCScreen(
                 )
             }
         },
-        bottomBar = if (section == SocSection.ALL) ({ BottomNavigationBar(navController) }) else null,
+        bottomBar = {
+            if (section == SocSection.ALL) {
+                BottomNavigationBar(navController)
+            }
+        },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { innerPadding ->
         Box(
@@ -846,10 +850,10 @@ private fun GPUFrequencyControlCard(viewModel: SoCViewModel) {
             Text("GPU controls", style = MaterialTheme.typography.titleMedium)
             Text("Set the lower and upper GPU frequency limits.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(Modifier.weight(1f), onClick = { openMin = true }) {
+                Button(modifier = Modifier.weight(1f), onClick = { openMin = true }) {
                     Column { Text("Lower"); Text("${gpuState.minFreq} MHz", style = MaterialTheme.typography.labelSmall) }
                 }
-                Button(Modifier.weight(1f), onClick = { openMax = true }) {
+                Button(modifier = Modifier.weight(1f), onClick = { openMax = true }) {
                     Column { Text("Higher"); Text("${gpuState.maxFreq} MHz", style = MaterialTheme.typography.labelSmall) }
                 }
             }
