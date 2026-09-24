@@ -98,6 +98,7 @@ import com.sdkm.manager.ui.taskKiller.TaskKillerActivity
 import com.sdkm.manager.utils.KernelUtils
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.ColumnScope
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavController) {
@@ -324,7 +325,7 @@ private fun DashboardHeader(device: String, codename: String, android: String) {
 }
 
 @Composable
-private fun DashboardSection(title: String, content: @Composable Column.() -> Unit) {
+private fun DashboardSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 3.dp))
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(9.dp)) {
