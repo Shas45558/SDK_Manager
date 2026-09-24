@@ -59,10 +59,10 @@ import androidx.compose.ui.unit.dp
 fun LazyListScope.section(@StringRes text: Int, content: LazyListScope.() -> Unit) {
     item {
         Text(
-            text = stringResource(text),
-            style = MaterialTheme.typography.titleMedium,
+            text = stringResource(text).uppercase(),
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = 8.dp),
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
         )
     }
     content()

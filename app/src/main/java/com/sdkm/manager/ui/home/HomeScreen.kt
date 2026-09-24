@@ -12,36 +12,35 @@ package com.sdkm.manager.ui.home
 
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BatteryFull
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Groups3
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -51,15 +50,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -67,23 +63,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_android_rounded_filled
-import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_info_rounded_filled
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_memory_rounded_filled
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_mobile_info_rounded_filled
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_shield_rounded_filled
 import com.sdkm.manager.R
-import com.sdkm.manager.ui.components.SimpleTopAppBar
 import com.sdkm.manager.ui.contributor.ContributorActivity
-import com.sdkm.manager.ui.navigation.BatteryRoute
 import com.sdkm.manager.ui.navigation.BottomNavigationBar
-import com.sdkm.manager.ui.navigation.KernelRoute
-import com.sdkm.manager.ui.navigation.SoCRoute
+import com.sdkm.manager.ui.components.SimpleTopAppBar
+import androidx.core.net.toUri
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavController) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    var isFullKernelVersion by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -98,271 +91,252 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
 
     val deviceInfo by viewModel.deviceInfo.collectAsStateWithLifecycle()
     val appVersion by viewModel.appVersion.collectAsStateWithLifecycle()
-    var isFullKernelVersion by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = { SimpleTopAppBar() },
         bottomBar = { BottomNavigationBar(navController) },
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .background(MaterialTheme.colorScheme.surface),
+            contentPadding = PaddingValues(
+                start = 12.dp,
+                end = 12.dp,
+                top = innerPadding.calculateTopPadding() + 8.dp,
+                bottom = innerPadding.calculateBottomPadding() + 12.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             item {
-                DashboardHeader(
-                    device = "${deviceInfo.manufacturer} ${deviceInfo.deviceName}",
-                    codename = deviceInfo.deviceCodename,
-                    kernel = if (isFullKernelVersion) deviceInfo.fullKernelVersion else deviceInfo.kernelVersion,
-                    onKernelClick = { isFullKernelVersion = !isFullKernelVersion },
-                )
+                RootStatusCard()
             }
 
             item {
-                Text(
-                    text = "SYSTEM OVERVIEW",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp, top = 2.dp),
-                )
-            }
-
-            item {
-                OverviewGrid(
-                    android = "${deviceInfo.androidVersion} (${deviceInfo.sdkVersion})",
-                    ram = "${deviceInfo.ramInfo} + ${deviceInfo.zram}",
-                    cpu = deviceInfo.cpu,
-                    gpu = deviceInfo.gpuModel,
-                )
-            }
-
-            item {
-                Text(
-                    text = "QUICK CONTROLS",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp, top = 2.dp),
-                )
-            }
-
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    QuickActionCard(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Filled.Memory,
-                        title = stringResource(R.string.nav_soc),
-                        subtitle = "CPU / GPU",
-                        onClick = { navController.navigate(SoCRoute) },
+                ExkmSection(title = "DEVICE") {
+                    ExkmRow(
+                        icon = painterResource(materialsymbols_ic_mobile_info_rounded_filled),
+                        title = stringResource(R.string.device),
+                        value = "${deviceInfo.manufacturer} ${deviceInfo.deviceName}",
+                        summary = deviceInfo.deviceCodename,
                     )
-                    QuickActionCard(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Filled.BatteryFull,
-                        title = stringResource(R.string.nav_battery),
-                        subtitle = "Power",
-                        onClick = { navController.navigate(BatteryRoute) },
+                    ExkmDivider()
+                    ExkmRow(
+                        icon = painterResource(materialsymbols_ic_android_rounded_filled),
+                        title = stringResource(R.string.android),
+                        value = "Android ${deviceInfo.androidVersion}",
+                        summary = "SDK ${deviceInfo.sdkVersion}",
                     )
-                    QuickActionCard(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Filled.Tune,
-                        title = stringResource(R.string.nav_kernel),
-                        subtitle = "Kernel",
-                        onClick = { navController.navigate(KernelRoute) },
+                    ExkmDivider()
+                    ExkmRow(
+                        icon = painterResource(R.drawable.ic_linux),
+                        title = stringResource(R.string.kernel),
+                        value = if (isFullKernelVersion) deviceInfo.fullKernelVersion else deviceInfo.kernelVersion,
+                        summary = "Tap to ${if (isFullKernelVersion) "shorten" else "show full"} version",
+                        onClick = { isFullKernelVersion = !isFullKernelVersion },
                     )
                 }
             }
 
             item {
-                Text(
-                    text = "DEVICE DETAILS",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp, top = 2.dp),
-                )
+                ExkmSection(title = "HARDWARE") {
+                    ExkmRow(
+                        icon = painterResource(materialsymbols_ic_memory_rounded_filled),
+                        title = stringResource(R.string.cpu),
+                        value = deviceInfo.cpu,
+                    )
+                    ExkmDivider()
+                    ExkmRow(
+                        icon = painterResource(materialsymbols_ic_memory_rounded_filled),
+                        title = stringResource(R.string.gpu),
+                        value = deviceInfo.gpuModel,
+                    )
+                    ExkmDivider()
+                    ExkmRow(
+                        icon = Icons.Rounded.Security,
+                        title = stringResource(R.string.wireguard),
+                        value = deviceInfo.wireGuard,
+                        summary = if (deviceInfo.hasWireGuard) "Available" else "Not detected",
+                    )
+                }
             }
 
             item {
-                DetailRow(DetailItem(painterResource(materialsymbols_ic_mobile_info_rounded_filled), stringResource(R.string.device), "${deviceInfo.manufacturer} ${deviceInfo.deviceName} (${deviceInfo.deviceCodename})"))
-            }
-            item {
-                DetailRow(DetailItem(painterResource(materialsymbols_ic_android_rounded_filled), stringResource(R.string.android), "${deviceInfo.androidVersion} (${deviceInfo.sdkVersion})"))
-            }
-            item {
-                DetailRow(DetailItem(painterResource(materialsymbols_ic_memory_rounded_filled), stringResource(R.string.ram), "${deviceInfo.ramInfo} + ${deviceInfo.zram} (ZRAM)"))
-            }
-            item {
-                DetailRow(DetailItem(painterResource(materialsymbols_ic_memory_rounded_filled), stringResource(R.string.cpu), deviceInfo.cpu))
-            }
-            item {
-                DetailRow(DetailItem(painterResource(materialsymbols_ic_memory_rounded_filled), stringResource(R.string.gpu), deviceInfo.gpuModel))
-            }
-            item {
-                DetailRow(DetailItem(painterResource(materialsymbols_ic_shield_rounded_filled), stringResource(R.string.wireguard), deviceInfo.wireGuard))
+                ExkmSection(title = "MEMORY") {
+                    ExkmRow(
+                        icon = painterResource(materialsymbols_ic_memory_rounded_filled),
+                        title = stringResource(R.string.ram),
+                        value = deviceInfo.ramInfo,
+                    )
+                    ExkmDivider()
+                    ExkmRow(
+                        icon = Icons.Rounded.Memory,
+                        title = "ZRAM",
+                        value = deviceInfo.zram,
+                        summary = "Compressed swap",
+                    )
+                }
             }
 
             item {
-                Text(
-                    text = "ABOUT SDKM",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp, top = 2.dp),
-                )
-            }
-
-            item {
-                AboutCard(
-                    appVersion = appVersion,
-                    onContributors = { context.startActivity(Intent(context, ContributorActivity::class.java)) },
-                    onSource = { context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/Shas45558/SDK_Manager.git".toUri())) },
-                    onTelegram = { context.startActivity(Intent(Intent.ACTION_VIEW, "https://t.me/ocmt6768".toUri())) },
-                )
+                ExkmSection(title = "ABOUT SDKM") {
+                    ExkmRow(
+                        icon = Icons.Rounded.Groups3,
+                        title = stringResource(R.string.contributors),
+                        summary = stringResource(R.string.contributors_desc),
+                        onClick = { context.startActivity(Intent(context, ContributorActivity::class.java)) },
+                    )
+                    ExkmDivider()
+                    ExkmRow(
+                        icon = Icons.Rounded.Code,
+                        title = stringResource(R.string.source_code),
+                        summary = stringResource(R.string.source_code_desc),
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/Shas45558/SDK_Manager.git".toUri()))
+                        },
+                    )
+                    ExkmDivider()
+                    ExkmRow(
+                        icon = painterResource(R.drawable.ic_telegram),
+                        title = stringResource(R.string.telegram_group),
+                        summary = stringResource(R.string.telegram_group_desc),
+                        onClick = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, "https://t.me/ocmt6768".toUri()))
+                        },
+                    )
+                    ExkmDivider()
+                    ExkmRow(
+                        icon = Icons.Rounded.Info,
+                        title = stringResource(R.string.app_version),
+                        value = appVersion,
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun DashboardHeader(device: String, codename: String, kernel: String, onKernelClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+private fun RootStatusCard() {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 1.dp,
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        painter = painterResource(materialsymbols_ic_info_rounded_filled),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-                Spacer(Modifier.size(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("SDKM", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text(device, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Text("$codename", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            }
-            Spacer(Modifier.height(14.dp))
-            Card(
-                onClick = onKernelClick,
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(painterResource(R.drawable.ic_linux), contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.size(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.kernel), style = MaterialTheme.typography.labelMedium)
-                        Text(kernel, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                    Text("DETAILS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun OverviewGrid(android: String, ram: String, cpu: String, gpu: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            MetricCard(Modifier.weight(1f), "ANDROID", android, Icons.Filled.Memory)
-            MetricCard(Modifier.weight(1f), "MEMORY", ram, Icons.Filled.Memory)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            MetricCard(Modifier.weight(1f), "CPU", cpu, Icons.Filled.Memory)
-            MetricCard(Modifier.weight(1f), "GPU", gpu, Icons.Filled.Memory)
-        }
-    }
-}
-
-@Composable
-private fun MetricCard(modifier: Modifier, label: String, value: String, icon: ImageVector) {
-    Card(modifier = modifier, shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.height(8.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-@Composable
-private fun QuickActionCard(modifier: Modifier, icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        Column(modifier = Modifier.padding(14.dp), horizontalAlignment = Alignment.Start) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.height(10.dp))
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-private data class DetailItem(val icon: androidx.compose.ui.graphics.painter.Painter, val title: String, val value: String)
-
-@Composable
-private fun DetailRow(item: DetailItem) {
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(item.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(21.dp))
-            Spacer(Modifier.size(12.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                modifier = Modifier.size(9.dp),
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primary,
+            ) {}
+            Spacer(Modifier.size(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(item.title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(item.value, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    text = "ROOT ACCESS",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Text(
+                    text = "KernelSU / root features ready",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
+            Text(
+                text = "ACTIVE",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
 
 @Composable
-private fun AboutCard(appVersion: String, onContributors: () -> Unit, onSource: () -> Unit, onTelegram: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        Column {
-            AboutRow(Icons.Rounded.Groups3, stringResource(R.string.contributors), stringResource(R.string.contributors_desc), onContributors)
-            AboutRow(Icons.Rounded.Code, stringResource(R.string.source_code), stringResource(R.string.source_code_desc), onSource)
-            AboutRow(painterResource(R.drawable.ic_telegram), stringResource(R.string.telegram_group), stringResource(R.string.telegram_group_desc), onTelegram)
-            AboutRow(painterResource(materialsymbols_ic_info_rounded_filled), stringResource(R.string.app_version), appVersion, null)
+private fun ExkmSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 4.dp, bottom = 5.dp),
+        )
+        Card(
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
+        ) {
+            Column(content = content)
         }
     }
 }
 
 @Composable
-private fun AboutRow(icon: Any, title: String, subtitle: String, onClick: (() -> Unit)?) {
-    val content: @Composable () -> Unit = {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            when (icon) {
-                is ImageVector -> Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                is androidx.compose.ui.graphics.painter.Painter -> Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            }
-            Spacer(Modifier.size(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+private fun ExkmDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = 52.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+    )
+}
+
+@Composable
+private fun ExkmRow(
+    icon: Any,
+    title: String,
+    value: String? = null,
+    summary: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .then(if (onClick != null) Modifier.clip(RoundedCornerShape(10.dp)) else Modifier)
+        .then(if (onClick != null) Modifier.background(MaterialTheme.colorScheme.surfaceContainer).clickable(onClick = onClick) else Modifier)
+        .padding(horizontal = 12.dp, vertical = 10.dp)
+
+    Row(
+        modifier = rowModifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        when (icon) {
+            is ImageVector -> Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+            is Painter -> Icon(
+                painter = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Spacer(Modifier.size(18.dp))
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            if (summary != null) {
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
+        if (value != null) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
     }
-    if (onClick != null) Card(onClick = onClick, colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.Transparent), modifier = Modifier.fillMaxWidth()) { content() } else content()
 }

@@ -46,6 +46,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
@@ -94,10 +95,10 @@ object Card {
         ) {
             Row(
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Box(
                     modifier = Modifier
@@ -122,7 +123,7 @@ object Card {
                 }
                 Text(
                     text = text,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
                 Icon(
@@ -138,7 +139,7 @@ object Card {
 
     @Composable
     fun ItemCard(
-        shape: Shape = CardDefaults.shape,
+        shape: Shape = RoundedCornerShape(10.dp),
         colors: CardColors = CardDefaults.cardColors(),
         containerIconColor: Color = MaterialTheme.colorScheme.primaryContainer,
         icon: Any? = null,
@@ -151,10 +152,10 @@ object Card {
         val content: @Composable ColumnScope.() -> Unit = {
             Row(
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (icon != null) {
                     Box(
@@ -187,7 +188,7 @@ object Card {
                 ) {
                     Text(
                         text = title,
-                        style = if (titleLarge) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                        style = if (titleLarge) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
                     )
                     if (body != null) {
                         Text(

@@ -1,17 +1,39 @@
-/* Copyright (c) 2025 Rve <rve27github@gmail.com> */
+/*
+ * Copyright (c) 2025 Rve <rve27github@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+// Dear programmer:
+// When I wrote this code, only god and
+// I knew how it worked.
+// Now, only god knows it!
+//
+// Therefore, if you are trying to optimize
+// this routine and it fails (most surely),
+// please increase this counter as a
+// warning for the next person:
+//
+// total hours wasted here = 254
+//
 package com.sdkm.manager.ui.navigation
 
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Memory
-import androidx.compose.material.icons.filled.BatteryFull
-import androidx.compose.material.icons.outlined.Battery0Bar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,19 +43,33 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 
 @Composable
 fun BottomNavigationBar(navController: NavController) {
-    val currentDestination = navController.currentBackStackEntryAsState().value?.destination
-    val items = listOf(NavigationRoute.Home, NavigationRoute.SoC, NavigationRoute.Battery, NavigationRoute.KernelParameter)
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
 
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+    val items = listOf(
+        NavigationRoute.Home,
+        NavigationRoute.SoC,
+        NavigationRoute.Battery,
+        NavigationRoute.KernelParameter,
+    )
+
+    ShortNavigationBar {
         items.forEach { item ->
             val title = stringResource(item.titleRes)
-            NavigationBarItem(
-                icon = { Icon(if (currentDestination?.route == item.route) item.selectedIcon else item.unselectedIcon, contentDescription = title) },
+            ShortNavigationBarItem(
+                icon = {
+                    Icon(
+                        if (currentDestination?.route == item.route) item.selectedIcon else item.unselectedIcon,
+                        contentDescription = title,
+                    )
+                },
                 label = { Text(title) },
                 selected = currentDestination?.route == item.route,
                 onClick = {
                     navController.navigate(item.route) {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
                         launchSingleTop = true
                         restoreState = true
                     }
