@@ -386,4 +386,9 @@ private fun formatBytes(bytes: Long): String {
     if (bytes <= 0L) return "N/A"
     val gb = bytes / 1073741824f
     return if (gb >= 1f) String.format(Locale.US, "%.1f GB", gb) else String.format(Locale.US, "%.0f MB", bytes / 1048576f)
+    if (bytes >= 1073741824L) {
+        val tenths = bytes / 107374182L
+        return "${tenths / 10}.${tenths % 10} GB"
+    }
+    return "${bytes / 1048576L} MB"
 }
