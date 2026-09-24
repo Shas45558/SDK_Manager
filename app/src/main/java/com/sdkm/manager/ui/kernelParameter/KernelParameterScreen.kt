@@ -917,7 +917,6 @@ private fun formatMemoryBytes(bytes: Long): String {
 }
 
 @Composable
-@Composable
 private fun SimpleKernelValueDialog(
     title: String,
     value: String,
@@ -942,6 +941,7 @@ private fun SimpleKernelValueDialog(
     )
 }
 
+@Composable
 fun MemoryCard(viewModel: KernelParameterViewModel) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val rotateArrow by animateFloatAsState(
