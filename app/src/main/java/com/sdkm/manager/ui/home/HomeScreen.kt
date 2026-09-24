@@ -177,14 +177,11 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                                 }
                             }
                         }
-                        CompactRow("Little Governor", cpuState.gov)
                         CompactRow("Little Max", cpuState.maxFreq + " MHz")
                         if (hasBigCluster) {
-                            CompactRow("Big Governor", bigClusterState.gov)
                             CompactRow("Big Max", bigClusterState.maxFreq + " MHz")
                         }
                         if (hasPrimeCluster) {
-                            CompactRow("Prime Governor", primeClusterState.gov)
                             CompactRow("Prime Max", primeClusterState.maxFreq + " MHz")
                         }
                     }

@@ -129,6 +129,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_START_ROUTE = "sdkm_start_route"
+        const val EXTRA_OPEN_DRAWER = "sdkm_open_drawer"
 
         init {
             @Suppress("DEPRECATION")
@@ -239,7 +240,10 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     } else {
-                        SDKMNavHost(startDestination = intent.getStringExtra(EXTRA_START_ROUTE) ?: HomeRoute)
+                        SDKMNavHost(
+                            startDestination = intent.getStringExtra(EXTRA_START_ROUTE) ?: HomeRoute,
+                            openDrawerOnStart = intent.getBooleanExtra(EXTRA_OPEN_DRAWER, false),
+                        )
                     }
                 }
             }

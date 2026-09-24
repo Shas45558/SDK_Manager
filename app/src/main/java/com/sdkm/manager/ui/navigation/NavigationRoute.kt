@@ -93,7 +93,7 @@ sealed class NavigationRoute(val route: String, val titleRes: Int, val selectedI
 }
 
 @Composable
-fun SDKMNavHost(startDestination: String = HomeRoute) {
+fun SDKMNavHost(startDestination: String = HomeRoute, openDrawerOnStart: Boolean = false) {
     val navController = rememberNavController()
     val drawerState = androidx.compose.material3.rememberDrawerState(androidx.compose.material3.DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -108,6 +108,12 @@ fun SDKMNavHost(startDestination: String = HomeRoute) {
         homeViewModel.loadDeviceInfo(context)
         homeViewModel.loadAppVersion(context)
         onDispose { }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(openDrawerOnStart) {
+        if (openDrawerOnStart) {
+            drawerState.open()
+        }
     }
 
     ModalNavigationDrawer(

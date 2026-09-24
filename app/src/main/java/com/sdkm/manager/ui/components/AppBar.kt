@@ -32,74 +32,25 @@
 package com.sdkm.manager.ui.components
 
 import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
-import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.core.content.ContextCompat
-import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_restart_alt_rounded_filled
-import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_settings_rounded_filled
-import com.sdkm.manager.R
-import com.sdkm.manager.ui.monitor.GameMonitorService
-import com.sdkm.manager.ui.settings.SettingsActivity
-import com.sdkm.manager.ui.taskKiller.TaskKillerActivity
-import com.sdkm.manager.utils.Utils
 import com.sdkm.manager.ui.navigation.LocalSDKMDrawer
 import com.sdkm.manager.ui.MainActivity
-import com.sdkm.manager.ui.navigation.BatteryRoute
-import com.sdkm.manager.ui.navigation.CpuRoute
-import com.sdkm.manager.ui.navigation.GpuRoute
-import com.sdkm.manager.ui.navigation.HomeRoute
-import com.sdkm.manager.ui.navigation.KernelSettingsRoute
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Composable
 fun SimpleTopAppBar(title: String = "SDKM", subtitle: String? = null) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    var isExpanded by remember { mutableStateOf(false) }
-    var monitorEnabled by remember {
-        mutableStateOf(context.getSharedPreferences("monitor_prefs", android.content.Context.MODE_PRIVATE).getBoolean("enabled", false))
-    }
-
-    val rebootMenu = listOf(
-        Pair(stringResource(R.string.reboot_system), ""),
-        Pair(stringResource(R.string.reboot_recovery), "recovery"),
-        Pair(stringResource(R.string.reboot_bootloader), "bootloader"),
-        Pair(stringResource(R.string.reboot_edl), "edl"),
-    )
-
     TopAppBar(
         title = {
             if (subtitle == null) {
@@ -107,7 +58,11 @@ fun SimpleTopAppBar(title: String = "SDKM", subtitle: String? = null) {
             } else {
                 androidx.compose.foundation.layout.Column {
                     Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         },
@@ -116,185 +71,23 @@ fun SimpleTopAppBar(title: String = "SDKM", subtitle: String? = null) {
                 Icon(Icons.Filled.Menu, contentDescription = "Menu")
             }
         },
-        actions = {
-            Row {
-                TooltipBox(
-                    positionProvider =
-                        TooltipDefaults.rememberTooltipPositionProvider(
-                            TooltipAnchorPosition.Below,
-                        ),
-                    tooltip = { PlainTooltip(caretShape = TooltipDefaults.caretShape()) { Text(stringResource(R.string.game_monitor)) } },
-                    state = rememberTooltipState(),
-                ) {
-                    IconButton(
-                        onClick = {
-                            if (!monitorEnabled) {
-                                if (Settings.canDrawOverlays(context)) {
-                                    ContextCompat.startForegroundService(context, Intent(context, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_START))
-                                    monitorEnabled = true
-                                    context.getSharedPreferences("monitor_prefs", android.content.Context.MODE_PRIVATE).edit().putBoolean("enabled", true).apply()
-                                } else {
-                                    context.startActivity(
-                                        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")),
-                                    )
-                                }
-                            } else {
-                                context.stopService(Intent(context, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_STOP))
-                                monitorEnabled = false
-                                context.getSharedPreferences("monitor_prefs", android.content.Context.MODE_PRIVATE).edit().putBoolean("enabled", false).apply()
-                            }
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.MonitorHeart,
-                            contentDescription = stringResource(R.string.game_monitor),
-                            tint = if (monitorEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                TooltipBox(
-                    positionProvider =
-                        TooltipDefaults.rememberTooltipPositionProvider(
-                            TooltipAnchorPosition.Below,
-                        ),
-                    tooltip = { PlainTooltip(caretShape = TooltipDefaults.caretShape()) { Text(stringResource(R.string.task_killer)) } },
-                    state = rememberTooltipState(),
-                ) {
-                    IconButton(
-                        onClick = {
-                            context.startActivity(Intent(context, TaskKillerActivity::class.java))
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.DeleteSweep,
-                            contentDescription = stringResource(R.string.task_killer),
-                        )
-                    }
-                }
-                TooltipBox(
-                    positionProvider =
-                        TooltipDefaults.rememberTooltipPositionProvider(
-                            TooltipAnchorPosition.Below,
-                        ),
-                    tooltip = { PlainTooltip(caretShape = TooltipDefaults.caretShape()) { Text(stringResource(R.string.settings)) } },
-                    state = rememberTooltipState(),
-                ) {
-                    IconButton(
-                        onClick = {
-                            context.startActivity(Intent(context, SettingsActivity::class.java))
-                        },
-                    ) {
-                        Icon(
-                            painter = painterResource(materialsymbols_ic_settings_rounded_filled),
-                            contentDescription = stringResource(R.string.menu),
-                        )
-                    }
-                }
-                TooltipBox(
-                    positionProvider =
-                        TooltipDefaults.rememberTooltipPositionProvider(
-                            TooltipAnchorPosition.Below,
-                        ),
-                    tooltip = { PlainTooltip(caretShape = TooltipDefaults.caretShape()) { Text(stringResource(R.string.reboot_menu)) } },
-                    state = rememberTooltipState(),
-                ) {
-                    IconButton(
-                        onClick = { isExpanded = true },
-                    ) {
-                        Icon(
-                            painter = painterResource(materialsymbols_ic_restart_alt_rounded_filled),
-                            contentDescription = stringResource(R.string.menu),
-                        )
-                    }
-                }
-                DropdownMenu(
-                    expanded = isExpanded,
-                    onDismissRequest = { isExpanded = false },
-                    shape = MaterialTheme.shapes.large,
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ) {
-                    rebootMenu.forEach { r ->
-                        DropdownMenuItem(
-                            text = { Text(r.first) },
-                            onClick = {
-                                isExpanded = false
-                                scope.launch(Dispatchers.IO) {
-                                    Utils.reboot(r.second)
-                                }
-                            },
-                        )
-                    }
-                }
-            }
-        },
     )
 }
 
 @Composable
 fun SDKMStandaloneHamburgerMenu() {
     val context = LocalContext.current
-    var expanded by remember { mutableStateOf(false) }
 
-    fun openMain(route: String) {
-        context.startActivity(
-            Intent(context, MainActivity::class.java).putExtra(MainActivity.EXTRA_START_ROUTE, route),
-        )
-    }
-
-    IconButton(onClick = { expanded = true }) {
+    IconButton(
+        onClick = {
+            context.startActivity(
+                Intent(context, MainActivity::class.java)
+                    .putExtra(MainActivity.EXTRA_OPEN_DRAWER, true)
+            )
+        },
+    ) {
         Icon(Icons.Filled.Menu, contentDescription = "Menu")
     }
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { expanded = false },
-        shape = MaterialTheme.shapes.large,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
-        listOf(
-            "Home" to HomeRoute,
-            "CPU" to CpuRoute,
-            "GPU" to GpuRoute,
-            "Battery" to BatteryRoute,
-            "Kernel Settings" to KernelSettingsRoute,
-        ).forEach { (label, route) ->
-            DropdownMenuItem(
-                text = { Text(label) },
-                onClick = { expanded = false; openMain(route) },
-            )
-        }
-        DropdownMenuItem(
-            text = { Text("Task Killer") },
-            onClick = {
-                expanded = false
-                context.startActivity(Intent(context, TaskKillerActivity::class.java))
-            },
-        )
-        DropdownMenuItem(
-            text = { Text("Settings") },
-            onClick = {
-                expanded = false
-                context.startActivity(Intent(context, SettingsActivity::class.java))
-            },
-        )
-        DropdownMenuItem(
-            text = { Text("Reboot") },
-            onClick = {
-                expanded = false
-                scopeReboot()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text("Exit") },
-            onClick = {
-                expanded = false
-                (context as? android.app.Activity)?.finishAffinity()
-            },
-        )
-    }
-}
-
-private fun scopeReboot() {
-    Utils.reboot("")
 }
 
 @Composable
