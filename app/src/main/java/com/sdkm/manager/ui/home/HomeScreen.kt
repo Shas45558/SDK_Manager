@@ -190,17 +190,23 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                 )
             }
 
-            items(
-                listOf(
-                    DetailItem(painterResource(materialsymbols_ic_mobile_info_rounded_filled), stringResource(R.string.device), "${deviceInfo.manufacturer} ${deviceInfo.deviceName} (${deviceInfo.deviceCodename})"),
-                    DetailItem(painterResource(materialsymbols_ic_android_rounded_filled), stringResource(R.string.android), "${deviceInfo.androidVersion} (${deviceInfo.sdkVersion})"),
-                    DetailItem(painterResource(materialsymbols_ic_memory_rounded_filled), stringResource(R.string.ram), "${deviceInfo.ramInfo} + ${deviceInfo.zram} (ZRAM)"),
-                    DetailItem(painterResource(materialsymbols_ic_memory_rounded_filled), stringResource(R.string.cpu), deviceInfo.cpu),
-                    DetailItem(painterResource(materialsymbols_ic_memory_rounded_filled), stringResource(R.string.gpu), deviceInfo.gpuModel),
-                    DetailItem(painterResource(materialsymbols_ic_shield_rounded_filled), stringResource(R.string.wireguard), deviceInfo.wireGuard),
-                ),
-            ) { item ->
-                DetailRow(item)
+            item {
+                DetailRow(DetailItem(painterResource(materialsymbols_ic_mobile_info_rounded_filled), stringResource(R.string.device), "${deviceInfo.manufacturer} ${deviceInfo.deviceName} (${deviceInfo.deviceCodename})"))
+            }
+            item {
+                DetailRow(DetailItem(painterResource(materialsymbols_ic_android_rounded_filled), stringResource(R.string.android), "${deviceInfo.androidVersion} (${deviceInfo.sdkVersion})"))
+            }
+            item {
+                DetailRow(DetailItem(painterResource(materialsymbols_ic_memory_rounded_filled), stringResource(R.string.ram), "${deviceInfo.ramInfo} + ${deviceInfo.zram} (ZRAM)"))
+            }
+            item {
+                DetailRow(DetailItem(painterResource(materialsymbols_ic_memory_rounded_filled), stringResource(R.string.cpu), deviceInfo.cpu))
+            }
+            item {
+                DetailRow(DetailItem(painterResource(materialsymbols_ic_memory_rounded_filled), stringResource(R.string.gpu), deviceInfo.gpuModel))
+            }
+            item {
+                DetailRow(DetailItem(painterResource(materialsymbols_ic_shield_rounded_filled), stringResource(R.string.wireguard), deviceInfo.wireGuard))
             }
 
             item {
