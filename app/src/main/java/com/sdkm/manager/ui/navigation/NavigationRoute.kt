@@ -48,6 +48,7 @@ import com.sdkm.manager.ui.battery.BatteryScreen
 import com.sdkm.manager.ui.home.HomeScreen
 import com.sdkm.manager.ui.kernelParameter.KernelParameterScreen
 import com.sdkm.manager.ui.soc.SoCScreen
+import com.sdkm.manager.ui.soc.SocSection
 
 sealed class NavigationRoute(val route: String, val titleRes: Int, val selectedIcon: ImageVector, val unselectedIcon: ImageVector) {
     object Home : NavigationRoute(
@@ -88,7 +89,13 @@ fun SDKMNavHost() {
             HomeScreen(navController = navController)
         }
         composable(SoCRoute) {
-            SoCScreen(navController = navController)
+            SoCScreen(navController = navController, section = SocSection.ALL)
+        }
+        composable(CpuRoute) {
+            SoCScreen(navController = navController, section = SocSection.CPU)
+        }
+        composable(GpuRoute) {
+            SoCScreen(navController = navController, section = SocSection.GPU)
         }
         composable(BatteryRoute) {
             BatteryScreen(navController = navController)
@@ -101,5 +108,7 @@ fun SDKMNavHost() {
 
 const val HomeRoute = "home"
 const val SoCRoute = "soc"
+const val CpuRoute = "cpu"
+const val GpuRoute = "gpu"
 const val BatteryRoute = "battery"
 const val KernelRoute = "kernel"

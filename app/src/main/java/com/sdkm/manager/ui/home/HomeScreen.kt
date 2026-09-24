@@ -40,9 +40,13 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.MonitorHeart
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Card
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -90,16 +94,14 @@ import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsy
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_memory_rounded_filled
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_mobile_info_rounded_filled
 import com.sdkm.manager.R
-import com.sdkm.manager.ui.contributor.ContributorActivity
 import com.sdkm.manager.ui.monitor.GameMonitorService
 import com.sdkm.manager.ui.settings.SettingsActivity
 import com.sdkm.manager.ui.soc.SoCViewModel
 import com.sdkm.manager.ui.taskKiller.TaskKillerActivity
-import com.sdkm.manager.utils.KernelUtils
+import com.sdkm.manager.utils.Utils
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.ColumnScope
-import java.util.Locale
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavController) {
@@ -108,14 +110,18 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val socViewModel: SoCViewModel = viewModel()
+    var showReboot by rememberSaveable { mutableStateOf(false) }
     var showAbout by rememberSaveable { mutableStateOf(false) }
-    var isFullKernelVersion by rememberSaveable { mutableStateOf(false) }
+
+    DisposableEffect(context) {
+        viewModel.loadAppVersion(context)
+        onDispose { }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.loadDeviceInfo(context)
-                viewModel.loadAppVersion(context)
                 socViewModel.startJob()
             }
             if (event == Lifecycle.Event.ON_PAUSE) socViewModel.stopJob()
@@ -129,11 +135,13 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
 
     val deviceInfo by viewModel.deviceInfo.collectAsStateWithLifecycle()
     val appVersion by viewModel.appVersion.collectAsStateWithLifecycle()
+    val zramMemory by viewModel.zramMemory.collectAsStateWithLifecycle()
     val cpuState by socViewModel.cpu0State.collectAsStateWithLifecycle()
     val gpuState by socViewModel.gpuState.collectAsStateWithLifecycle()
     val cpuUsage by socViewModel.cpuUsage.collectAsStateWithLifecycle()
     val gpuUsage by socViewModel.gpuUsage.collectAsStateWithLifecycle()
     val ramState by socViewModel.ramState.collectAsStateWithLifecycle()
+    val cpuCoreMetrics by socViewModel.cpuCoreMetrics.collectAsStateWithLifecycle()
 
     val cpuHistory = remember { mutableStateListOf<Float>() }
     val gpuHistory = remember { mutableStateListOf<Float>() }
@@ -171,11 +179,11 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                 DrawerItem("Home", Icons.Rounded.Home, selected = true) { scope.launch { drawerState.close() } }
                 DrawerItem("CPU", Icons.Rounded.Memory) {
                     scope.launch { drawerState.close() }
-                    navController.navigate("soc")
+                    navController.navigate("cpu")
                 }
                 DrawerItem("GPU", Icons.Rounded.DeveloperBoard) {
                     scope.launch { drawerState.close() }
-                    navController.navigate("soc")
+                    navController.navigate("gpu")
                 }
                 DrawerItem("Monitor", Icons.Rounded.MonitorHeart) {
                     scope.launch { drawerState.close() }
@@ -192,6 +200,10 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                 DrawerItem("Settings", Icons.Rounded.Settings) {
                     scope.launch { drawerState.close() }
                     context.startActivity(Intent(context, SettingsActivity::class.java))
+                }
+                DrawerItem("Reboot", Icons.Rounded.RestartAlt) {
+                    scope.launch { drawerState.close() }
+                    showReboot = true
                 }
                 DrawerItem("About", Icons.Rounded.Info) {
                     scope.launch { drawerState.close() }
@@ -226,75 +238,123 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
         ) { innerPadding ->
             LazyColumn(
                 modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
-                contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = innerPadding.calculateTopPadding() + 4.dp, bottom = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(9.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = innerPadding.calculateTopPadding() + 10.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item {
-                    DashboardHeader(
-                        device = "${deviceInfo.manufacturer} ${deviceInfo.deviceName}",
-                        codename = deviceInfo.deviceCodename,
-                        android = "Android ${deviceInfo.androidVersion} • SDK ${deviceInfo.sdkVersion}",
-                    )
-                }
-                item {
                     DashboardSection("CPU") {
-                        MetricHeader("Current", cpuState.currentFreq, "Load", cpuUsage)
-                        MiniUsageGraph(cpuHistory, Modifier.fillMaxWidth().height(76.dp))
+                        MetricHeader("Current", cpuState.currentFreq + " MHz", "Load", cpuUsage + "%")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            MiniUsageGraph(cpuHistory, Modifier.weight(1.55f).height(132.dp))
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(5.dp),
+                            ) {
+                                cpuCoreMetrics.take(8).forEach { core ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text("CPU${core.cpu}", style = MaterialTheme.typography.labelMedium)
+                                        Text("${core.load}%", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                        Text("${core.frequencyMHz} MHz", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        }
                         CompactRow("Governor", cpuState.gov)
-                        CompactRow("Max", cpuState.maxFreq)
+                        CompactRow("Max", cpuState.maxFreq + " MHz")
                     }
                 }
                 item {
                     DashboardSection("GPU") {
-                        MetricHeader("Current", gpuState.currentFreq, "Load", gpuUsage)
+                        MetricHeader("Current", gpuState.currentFreq + " MHz", "Load", gpuUsage + "%")
+                        MiniUsageGraph(gpuHistory, Modifier.fillMaxWidth().height(96.dp))
                         CompactRow("Governor", gpuState.gov)
-                        CompactRow("Max", gpuState.maxFreq)
+                        CompactRow("Max", gpuState.maxFreq + " MHz")
                     }
                 }
                 item {
                     DashboardSection("RAM & ZRAM") {
                         val ramUsed = formatBytes(ramState.usedBytes)
                         val ramTotal = formatBytes(ramState.totalBytes)
+                        val zramUsed = formatBytes(zramMemory.usedBytes)
+                        val zramTotal = formatBytes(zramMemory.totalBytes)
                         CompactRow("RAM", "$ramUsed / $ramTotal")
-                        CompactRow("ZRAM", deviceInfo.zram)
-                        val ratio = if (ramState.totalBytes > 0) (ramState.usedBytes.toFloat() / ramState.totalBytes).coerceIn(0f, 1f) else 0f
-                        MiniBar(ratio)
-                    }
-                }
-                item {
-                    DashboardSection("SYSTEM") {
-                        CompactRow("Kernel", if (isFullKernelVersion) deviceInfo.fullKernelVersion else deviceInfo.kernelVersion) {
-                            isFullKernelVersion = !isFullKernelVersion
-                        }
-                        CompactRow("WireGuard", deviceInfo.wireGuard)
-                        CompactRow("Root", "ACTIVE")
-                    }
-                }
-                item {
-                    DashboardSection("ABOUT SDKM") {
-                        CompactRow("Version", appVersion)
-                        CompactRow("Source", "GitHub") {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Shas45558/SDK_Manager")))
-                        }
-                        CompactRow("Telegram", "t.me/ocmt6768") {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/ocmt6768")))
-                        }
-                        CompactRow("Contributors", "View") {
-                            context.startActivity(Intent(context, ContributorActivity::class.java))
-                        }
+                        val ramRatio = if (ramState.totalBytes > 0) (ramState.usedBytes.toFloat() / ramState.totalBytes).coerceIn(0f, 1f) else 0f
+                        MiniBar(ramRatio)
+                        CompactRow("ZRAM", "$zramUsed / $zramTotal")
+                        val zramRatio = if (zramMemory.totalBytes > 0) (zramMemory.usedBytes.toFloat() / zramMemory.totalBytes).coerceIn(0f, 1f) else 0f
+                        MiniBar(zramRatio)
                     }
                 }
             }
         }
     }
 
+    if (showReboot) {
+        AlertDialog(
+            onDismissRequest = { showReboot = false },
+            title = { Text("Reboot") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { showReboot = false; Utils.reboot("") },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    ) { Text("Normal") }
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { showReboot = false; Utils.reboot("recovery") },
+                    ) { Text("Recovery") }
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { showReboot = false; Utils.reboot("bootloader") },
+                    ) { Text("Bootloader") }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showReboot = false }) { Text("Cancel") } },
+        )
+    }
+
     if (showAbout) {
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { showAbout = false },
-            title = { Text("About SDKM") },
-            text = { Text("SDKM — Kernel & System Manager\n\nVersion $appVersion\nRoot-focused Android system controls and monitoring.") },
+            title = { Text("About") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    AboutSection("SDKM About") {
+                        CompactRow("Version", appVersion)
+                        CompactRow("Source", "GitHub")
+                        CompactRow("Telegram", "t.me/ocmt6768")
+                        CompactRow("Contributors", "View")
+                    }
+
+                    AboutSection("System About") {
+                        CompactRow("Device", "${deviceInfo.manufacturer} ${deviceInfo.deviceName}")
+                        CompactRow("Codename", deviceInfo.deviceCodename)
+                        CompactRow("Android", deviceInfo.androidVersion)
+                        CompactRow("SDK", deviceInfo.sdkVersion.toString())
+                        CompactRow("Kernel", deviceInfo.fullKernelVersion.ifBlank { deviceInfo.kernelVersion })
+                        if (deviceInfo.hasWireGuard) {
+                            CompactRow("WireGuard", deviceInfo.wireGuard)
+                        }
+                        CompactRow("Root", "ACTIVE")
+                    }
+                }
+            },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { showAbout = false }) { Text("OK") }
+                androidx.compose.material3.TextButton(onClick = { showAbout = false }) {
+                    Text("OK")
+                }
             },
         )
     }
@@ -315,12 +375,22 @@ private fun DrawerItem(title: String, icon: ImageVector, selected: Boolean = fal
 }
 
 @Composable
-private fun DashboardHeader(device: String, codename: String, android: String) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), shape = RoundedCornerShape(10.dp)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(device, style = MaterialTheme.typography.titleMedium)
-            Text(codename, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-            Text(android, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun AboutSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 3.dp),
+        )
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            shape = RoundedCornerShape(9.dp),
+        ) {
+            Column(
+                Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                content = content,
+            )
         }
     }
 }

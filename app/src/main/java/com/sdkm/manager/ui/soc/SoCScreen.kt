@@ -62,6 +62,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.ElectricBolt
 import androidx.compose.material.icons.rounded.EnergySavingsLeaf
 import androidx.compose.material3.AlertDialog
@@ -149,8 +150,16 @@ sealed interface SocCardType {
     data object GpuMonitor : SocCardType
 }
 
+enum class SocSection {
+    ALL, CPU, GPU
+}
+
 @Composable
-fun SoCScreen(viewModel: SoCViewModel = viewModel(), navController: NavController) {
+fun SoCScreen(
+    viewModel: SoCViewModel = viewModel(),
+    navController: NavController,
+    section: SocSection = SocSection.ALL,
+) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
@@ -186,8 +195,21 @@ fun SoCScreen(viewModel: SoCViewModel = viewModel(), navController: NavControlle
     }
 
     Scaffold(
-        topBar = { SimpleTopAppBar() },
-        bottomBar = { BottomNavigationBar(navController) },
+        topBar = {
+            if (section == SocSection.ALL) {
+                SimpleTopAppBar()
+            } else {
+                androidx.compose.material3.TopAppBar(
+                    title = { Text(if (section == SocSection.CPU) "CPU" else "GPU") },
+                    navigationIcon = {
+                        androidx.compose.material3.IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                )
+            }
+        },
+        bottomBar = if (section == SocSection.ALL) ({ BottomNavigationBar(navController) }) else null,
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { innerPadding ->
         Box(
@@ -200,14 +222,19 @@ fun SoCScreen(viewModel: SoCViewModel = viewModel(), navController: NavControlle
             LazyColumn(
                 state = rememberLazyListState(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(items = socCards, key = { it.toString() }) { cardType ->
-
-                    when (cardType) {
-                        SocCardType.CpuMonitor -> CPUMonitorCard(viewModel)
-                        SocCardType.GpuMonitor -> GPUMonitorCard(viewModel)
+                when (section) {
+                    SocSection.ALL -> {
+                        items(items = socCards, key = { it.toString() }) { cardType ->
+                            when (cardType) {
+                                SocCardType.CpuMonitor -> CPUMonitorCard(viewModel)
+                                SocCardType.GpuMonitor -> GPUMonitorCard(viewModel)
+                            }
+                        }
                     }
+                    SocSection.CPU -> item { CPUControlFragment(viewModel) }
+                    SocSection.GPU -> item { GPUFrequencyControlCard(viewModel) }
                 }
             }
         }
@@ -730,6 +757,150 @@ private fun formatRamBytes(bytes: Long): String {
     } else {
         "%.0f MB".format(java.util.Locale.US, mib)
     }
+}
+
+@Composable
+private fun CPUControlFragment(viewModel: SoCViewModel) {
+    val hasBigCluster by viewModel.hasBigCluster.collectAsStateWithLifecycle()
+    val hasPrimeCluster by viewModel.hasPrimeCluster.collectAsStateWithLifecycle()
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("CPU controls", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Set lower/upper frequency limits and the governor. Core disable is available below.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        CPULittleClusterCard(viewModel)
+        if (hasBigCluster) BigClusterCard(viewModel)
+        if (hasPrimeCluster) PrimeClusterCard(viewModel)
+        CPUCoreDisableDialogCard(viewModel)
+    }
+}
+
+@Composable
+private fun CPUCoreDisableDialogCard(viewModel: SoCViewModel) {
+    var showDialog by rememberSaveable { mutableStateOf(false) }
+    val cores by viewModel.cpuCoreStates.collectAsStateWithLifecycle()
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text("CPU disable", style = MaterialTheme.typography.titleMedium)
+                Text("Disable or enable individual cores", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Button(onClick = { showDialog = true }) { Text("Open") }
+        }
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("CPU cores") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    cores.forEach { core ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column {
+                                Text("CPU ${core.cpu}")
+                                Text(if (core.online) "ON" else "OFF", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+                            }
+                            androidx.compose.material3.Switch(
+                                checked = core.online,
+                                enabled = core.controllable,
+                                onCheckedChange = { viewModel.setCpuCoreOnline(core.cpu, it) },
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showDialog = false }) { Text("Close") } },
+        )
+    }
+}
+
+@Composable
+private fun GPUFrequencyControlCard(viewModel: SoCViewModel) {
+    var openMin by remember { mutableStateOf(false) }
+    var openMax by remember { mutableStateOf(false) }
+    val gpuState by viewModel.gpuState.collectAsStateWithLifecycle()
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = RoundedCornerShape(18.dp),
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("GPU controls", style = MaterialTheme.typography.titleMedium)
+            Text("Set the lower and upper GPU frequency limits.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(Modifier.weight(1f), onClick = { openMin = true }) {
+                    Column { Text("Lower"); Text("${gpuState.minFreq} MHz", style = MaterialTheme.typography.labelSmall) }
+                }
+                Button(Modifier.weight(1f), onClick = { openMax = true }) {
+                    Column { Text("Higher"); Text("${gpuState.maxFreq} MHz", style = MaterialTheme.typography.labelSmall) }
+                }
+            }
+        }
+    }
+
+    if (openMin) {
+        FrequencyChoiceDialog(
+            title = "GPU lower frequency",
+            frequencies = gpuState.availableFreq.sortedBy { it.toIntOrNull() ?: 0 },
+            selected = gpuState.minFreq,
+            onSelect = { viewModel.updateFreq("min", it, "gpu"); openMin = false },
+            onDismiss = { openMin = false },
+        )
+    }
+    if (openMax) {
+        FrequencyChoiceDialog(
+            title = "GPU higher frequency",
+            frequencies = gpuState.availableFreq.sortedByDescending { it.toIntOrNull() ?: 0 },
+            selected = gpuState.maxFreq,
+            onSelect = { viewModel.updateFreq("max", it, "gpu"); openMax = false },
+            onDismiss = { openMax = false },
+        )
+    }
+}
+
+@Composable
+private fun FrequencyChoiceDialog(
+    title: String,
+    frequencies: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(frequencies) { freq ->
+                    ToggleButton(
+                        checked = freq == selected,
+                        onCheckedChange = { if (it) onSelect(freq) },
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(12.dp),
+                    ) { Text("$freq MHz") }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
 }
 
 @Composable

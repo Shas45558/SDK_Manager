@@ -162,6 +162,9 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
     private val _cpuCoreStates = MutableStateFlow<List<SoCUtils.CpuCoreState>>(emptyList())
     val cpuCoreStates: StateFlow<List<SoCUtils.CpuCoreState>> = _cpuCoreStates
 
+    private val _cpuCoreMetrics = MutableStateFlow<List<SoCUtils.CpuCoreMetric>>(emptyList())
+    val cpuCoreMetrics: StateFlow<List<SoCUtils.CpuCoreMetric>> = _cpuCoreMetrics
+
     private val _cpuUsage = MutableStateFlow("N/A")
     val cpuUsage: StateFlow<String> = _cpuUsage
 
@@ -251,6 +254,7 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun loadCPUData() {
         _cpuCoreStates.value = SoCUtils.readCpuCoreStates()
+        _cpuCoreMetrics.value = SoCUtils.readCpuCoreMetrics()
         _cpu0State.value = loadClusterState(ClusterConfig.Little)
 
         detectedBigClusterConfig = detectBigClusterConfig()

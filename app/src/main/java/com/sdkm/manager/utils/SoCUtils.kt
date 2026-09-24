@@ -83,6 +83,51 @@ object SoCUtils {
 
     data class CpuCoreState(val cpu: Int, val online: Boolean, val controllable: Boolean)
 
+    data class CpuCoreMetric(
+        val cpu: Int,
+        val load: Int,
+        val frequencyMHz: String,
+    )
+
+    private val previousCpuCoreStats = mutableMapOf<Int, Pair<Long, Long>>()
+
+    fun readCpuCoreMetrics(): List<CpuCoreMetric> = runCatching {
+        val statLines = Utils.readFile("/proc/stat").lineSequence()
+            .filter { it.startsWith("cpu") && it.getOrNull(3)?.isDigit() == true }
+            .toList()
+
+        statLines.mapNotNull { line ->
+            val parts = line.trim().split(Regex("\\s+"))
+            val cpu = parts.firstOrNull()?.removePrefix("cpu")?.toIntOrNull() ?: return@mapNotNull null
+            if (parts.size < 8) return@mapNotNull null
+            val values = parts.drop(1).mapNotNull { it.toLongOrNull() }
+            if (values.size < 7) return@mapNotNull null
+            val idle = values[3] + (values.getOrNull(4) ?: 0L)
+            val total = values.sum()
+            val previous = previousCpuCoreStats[cpu]
+            val load = if (previous != null && total > previous.first) {
+                val totalDelta = total - previous.first
+                val idleDelta = (idle - previous.second).coerceAtLeast(0L)
+                ((totalDelta - idleDelta).coerceAtLeast(0L) * 100L / totalDelta).toInt().coerceIn(0, 100)
+            } else {
+                0
+            }
+            previousCpuCoreStats[cpu] = total to idle
+
+            val path = "/sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_cur_freq"
+            val raw = Shell.cmd("cat $path 2>/dev/null").exec().out.firstOrNull()?.trim()?.toLongOrNull()
+            val mhz = when {
+                raw == null || raw <= 0L -> "0"
+                raw >= 10_000_000L -> raw / 1_000_000L
+                else -> raw / 1_000L
+            }
+            CpuCoreMetric(cpu, load, mhz.toString())
+        }.sortedBy { it.cpu }
+    }.getOrElse {
+        Log.e(TAG, "readCpuCoreMetrics: ${it.message}", it)
+        emptyList()
+    }
+
     fun readCpuCoreStates(): List<CpuCoreState> = runCatching {
         val cpuDirs = File("/sys/devices/system/cpu").listFiles()
             ?.mapNotNull { file ->

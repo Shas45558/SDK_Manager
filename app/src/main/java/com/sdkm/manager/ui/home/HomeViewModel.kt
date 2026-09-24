@@ -64,6 +64,9 @@ class HomeViewModel : ViewModel() {
     private val _appVersion = MutableStateFlow("Unknown")
     val appVersion: StateFlow<String> = _appVersion
 
+    private val _zramMemory = MutableStateFlow(KernelUtils.ZramMemoryInfo(0L, 0L, 0L))
+    val zramMemory: StateFlow<KernelUtils.ZramMemoryInfo> = _zramMemory
+
     fun loadDeviceInfo(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
             _deviceInfo.value = DeviceInfo(
@@ -81,6 +84,7 @@ class HomeViewModel : ViewModel() {
                 kernelVersion = KernelUtils.getKernelVersion(context),
                 fullKernelVersion = KernelUtils.getFullKernelVersion(context),
             )
+            _zramMemory.value = KernelUtils.getZramMemoryInfo()
         }
     }
 
