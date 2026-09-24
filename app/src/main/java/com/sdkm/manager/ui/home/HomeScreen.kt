@@ -99,6 +99,7 @@ import com.sdkm.manager.utils.KernelUtils
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.ColumnScope
+import java.util.Locale
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavController) {
@@ -384,5 +385,5 @@ private fun MiniBar(value: Float) {
 private fun formatBytes(bytes: Long): String {
     if (bytes <= 0L) return "N/A"
     val gb = bytes / 1073741824f
-    return if (gb >= 1f) "%.1f GB".format(gb) else "%.0f MB".format(bytes / 1048576f)
+    return if (gb >= 1f) String.format(Locale.US, "%.1f GB", gb) else String.format(Locale.US, "%.0f MB", bytes / 1048576f)
 }
