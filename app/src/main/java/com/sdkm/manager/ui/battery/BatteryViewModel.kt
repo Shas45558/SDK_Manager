@@ -55,6 +55,9 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
         val health: String = "N/A",
         val temp: String = "N/A",
         val voltage: String = "N/A",
+        val current: String = "N/A",
+        val power: String = "N/A",
+        val status: String = "N/A",
         val deepSleep: String = "N/A",
         val designCapacity: String = "N/A",
         val manualDesignCapacity: Int = 0,
@@ -87,6 +90,7 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
     private var tempReceiver: BroadcastReceiver? = null
     private var voltageReceiver: BroadcastReceiver? = null
     private var maxCapacityReceiver: BroadcastReceiver? = null
+    private var electricalReceiver: BroadcastReceiver? = null
 
     private var job: Job? = null
 
@@ -171,6 +175,14 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
             maxCapacityReceiver = BatteryUtils.registerBatteryCapacityListener(context) { maxCapacity ->
                 _batteryInfo.value = _batteryInfo.value.copy(maximumCapacity = maxCapacity)
             }
+            electricalReceiver = BatteryUtils.registerBatteryElectricalListener(context) { voltage, current, power, status ->
+                _batteryInfo.value = _batteryInfo.value.copy(
+                    voltage = voltage,
+                    current = current,
+                    power = power,
+                    status = status,
+                )
+            }
         }
     }
 
@@ -192,6 +204,10 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
                 maxCapacityReceiver?.let {
                     context.unregisterReceiver(it)
                     maxCapacityReceiver = null
+                }
+                electricalReceiver?.let {
+                    context.unregisterReceiver(it)
+                    electricalReceiver = null
                 }
             } catch (e: Exception) {
                 Log.e("BatteryVM", "Error unregistering receivers", e)

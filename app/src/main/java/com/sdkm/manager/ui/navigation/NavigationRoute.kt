@@ -47,6 +47,7 @@ import com.sdkm.manager.R
 import com.sdkm.manager.ui.battery.BatteryScreen
 import com.sdkm.manager.ui.home.HomeScreen
 import com.sdkm.manager.ui.kernelParameter.KernelParameterScreen
+import com.sdkm.manager.ui.kernelParameter.KernelSettingsScreen
 import com.sdkm.manager.ui.soc.SoCScreen
 import com.sdkm.manager.ui.soc.SocSection
 
@@ -103,6 +104,9 @@ fun SDKMNavHost() {
         composable(KernelRoute) {
             KernelParameterScreen(navController = navController)
         }
+        composable(KernelSettingsRoute) {
+            KernelSettingsScreen(navController = navController)
+        }
     }
 }
 
@@ -112,3 +116,4 @@ const val CpuRoute = "cpu"
 const val GpuRoute = "gpu"
 const val BatteryRoute = "battery"
 const val KernelRoute = "kernel"
+const val KernelSettingsRoute = "kernel_settings"

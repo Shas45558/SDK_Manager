@@ -97,8 +97,10 @@ import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsy
 import com.sdkm.manager.R
 import com.sdkm.manager.ui.monitor.GameMonitorService
 import com.sdkm.manager.ui.settings.SettingsActivity
+import com.sdkm.manager.ui.battery.BatteryViewModel
 import com.sdkm.manager.ui.soc.SoCViewModel
 import com.sdkm.manager.ui.taskKiller.TaskKillerActivity
+import com.sdkm.manager.ui.navigation.KernelSettingsRoute
 import com.sdkm.manager.utils.Utils
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
@@ -111,6 +113,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val socViewModel: SoCViewModel = viewModel()
+    val batteryViewModel: BatteryViewModel = viewModel()
     var showReboot by rememberSaveable { mutableStateOf(false) }
     var showAbout by rememberSaveable { mutableStateOf(false) }
 
@@ -124,8 +127,13 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.loadDeviceInfo(context)
                 socViewModel.startJob()
+                batteryViewModel.initializeBatteryInfo(context)
             }
-            if (event == Lifecycle.Event.ON_PAUSE) socViewModel.stopJob()
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                socViewModel.stopJob()
+                batteryViewModel.unregisterBatteryListeners(context)
+                batteryViewModel.stopJob()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
@@ -143,6 +151,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
     val gpuUsage by socViewModel.gpuUsage.collectAsStateWithLifecycle()
     val ramState by socViewModel.ramState.collectAsStateWithLifecycle()
     val cpuCoreMetrics by socViewModel.cpuCoreMetrics.collectAsStateWithLifecycle()
+    val batteryInfo by batteryViewModel.batteryInfo.collectAsStateWithLifecycle()
 
     val cpuHistory = remember { mutableStateListOf<Float>() }
     val gpuHistory = remember { mutableStateListOf<Float>() }
@@ -198,6 +207,10 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                     scope.launch { drawerState.close() }
                     context.startActivity(Intent(context, TaskKillerActivity::class.java))
                 }
+                DrawerItem("Kernel Settings", Icons.Rounded.Memory) {
+                    scope.launch { drawerState.close() }
+                    navController.navigate(KernelSettingsRoute)
+                }
                 DrawerItem("Settings", Icons.Rounded.Settings) {
                     scope.launch { drawerState.close() }
                     context.startActivity(Intent(context, SettingsActivity::class.java))
@@ -247,6 +260,33 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                         MetricHeader("Current", cpuState.currentFreq + " MHz", "Load", cpuUsage + "%")
                         Row(
                             modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            ClusterChip(
+                                title = "Little",
+                                current = cpuState.currentFreq,
+                                max = cpuState.maxFreq,
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (socViewModel.hasBigCluster.collectAsStateWithLifecycle().value) {
+                                ClusterChip(
+                                    title = "Big",
+                                    current = socViewModel.bigClusterState.collectAsStateWithLifecycle().value.currentFreq,
+                                    max = socViewModel.bigClusterState.collectAsStateWithLifecycle().value.maxFreq,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            if (socViewModel.hasPrimeCluster.collectAsStateWithLifecycle().value) {
+                                ClusterChip(
+                                    title = "Prime",
+                                    current = socViewModel.primeClusterState.collectAsStateWithLifecycle().value.currentFreq,
+                                    max = socViewModel.primeClusterState.collectAsStateWithLifecycle().value.maxFreq,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -294,6 +334,9 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                         MiniBar(zramRatio)
                     }
                 }
+                item {
+                    DashboardBatterySection(batteryInfo)
+                }
             }
         }
     }
@@ -334,9 +377,30 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                 ) {
                     AboutSection("SDKM About") {
                         CompactRow("Version", appVersion)
-                        CompactRow("Source", "GitHub")
-                        CompactRow("Telegram", "t.me/ocmt6768")
-                        CompactRow("Contributors", "View")
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Shas45558/SDK_Manager"))
+                                    )
+                                }
+                            },
+                        ) {
+                            Text("Source")
+                        }
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/ocmt6768"))
+                                    )
+                                }
+                            },
+                        ) {
+                            Text("Telegram")
+                        }
                     }
 
                     AboutSection("System About") {
@@ -358,6 +422,44 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun ClusterChip(title: String, current: String, max: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 7.dp)) {
+            Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Bottom) {
+                Text("$current MHz", style = MaterialTheme.typography.bodyMedium)
+                Text("/ $max", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DashboardBatterySection(batteryInfo: BatteryViewModel.BatteryInfo) {
+    val level = batteryInfo.level.removeSuffix("%").toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f
+    val capacity = batteryInfo.designCapacity.ifBlank { "N/A" }
+    val discharged = if (capacity.endsWith("mAh")) {
+        val mAh = capacity.removeSuffix(" mAh").toFloatOrNull()
+        if (mAh != null) "${(mAh * (100f - level) / 100f).toInt()} mAh discharged" else "N/A"
+    } else "N/A"
+
+    DashboardSection("BATTERY") {
+        MetricHeader("Capacity", capacity, "Charge", batteryInfo.level)
+        CompactRow("Status", batteryInfo.status + if (batteryInfo.current != "N/A") " • ${batteryInfo.current}" else "")
+        CompactRow("Voltage", batteryInfo.voltage)
+        CompactRow("Power", batteryInfo.power)
+        CompactRow("Health", batteryInfo.health)
+        CompactRow("Temperature", batteryInfo.temp)
+        CompactRow("Level", discharged)
+        MiniBar(level / 100f)
     }
 }
 

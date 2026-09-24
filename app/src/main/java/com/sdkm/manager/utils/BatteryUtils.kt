@@ -212,4 +212,29 @@ object BatteryUtils {
         registerBatteryListener(context) {
             callback(getBatteryMaximumCapacity(context))
         }
+
+    fun registerBatteryElectricalListener(
+        context: Context,
+        callback: (voltage: String, current: String, power: String, status: String) -> Unit,
+    ): BroadcastReceiver = registerBatteryListener(context) { intent ->
+        val voltageMv = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1)
+        val currentUa = intent.getIntExtra(BatteryManager.EXTRA_CURRENT_NOW, 0)
+        val voltage = if (voltageMv > 0) voltageMv / 1000f else 0f
+        val currentMa = kotlin.math.abs(currentUa) / 1000f
+        val powerW = voltage * currentMa / 1000f
+        val status = when (intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)) {
+            BatteryManager.BATTERY_STATUS_CHARGING -> "Charging"
+            BatteryManager.BATTERY_STATUS_FULL -> "Full"
+            BatteryManager.BATTERY_STATUS_DISCHARGING -> "Discharging"
+            BatteryManager.BATTERY_STATUS_NOT_CHARGING -> "Not charging"
+            else -> "Unknown"
+        }
+        callback(
+            if (voltage > 0f) String.format(java.util.Locale.US, "%.3f V", voltage) else "N/A",
+            if (currentMa > 0f) String.format(java.util.Locale.US, "%.0f mA", currentMa) else "N/A",
+            if (powerW > 0f) String.format(java.util.Locale.US, "%.2f W", powerW) else "N/A",
+            status,
+        )
+    }
+
 }
