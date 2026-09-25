@@ -82,6 +82,7 @@ import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsy
 import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsymbols_ic_light_mode_rounded_filled
 import com.sdkm.manager.R
 import com.sdkm.manager.ui.components.ListItem
+import com.sdkm.manager.ui.components.SDKMStandaloneDrawerHost
 import com.sdkm.manager.ui.components.SDKMStandaloneHamburgerMenu
 import com.sdkm.manager.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
@@ -100,7 +101,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     var openThemeDialog by remember { mutableStateOf(false) }
     var openPollingDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
+    SDKMStandaloneDrawerHost {
+        Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             androidx.compose.material3.TopAppBar(
@@ -281,5 +283,6 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 }
             },
         )
+    }
     }
 }

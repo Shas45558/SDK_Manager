@@ -46,6 +46,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import com.sdkm.manager.ui.components.SDKMStandaloneHamburgerMenu
+import com.sdkm.manager.ui.components.SDKMStandaloneDrawerHost
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -134,6 +135,7 @@ private fun TaskKillerScreen(onBack: () -> Unit) {
         }
     }
 
+    SDKMStandaloneDrawerHost {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -183,6 +185,7 @@ private fun TaskKillerScreen(onBack: () -> Unit) {
                 )
             }
         }
+    }
     }
 }
 
@@ -340,5 +343,6 @@ private fun formatKb(kb: Long): String {
         String.format(Locale.US, "%.0f MB", kb / 1024.0)
     } else {
         "$kb KB"
-    }
+    }    }
+
 }
