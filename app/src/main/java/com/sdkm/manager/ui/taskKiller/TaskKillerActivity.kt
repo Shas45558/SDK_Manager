@@ -345,4 +345,3 @@ private fun formatKb(kb: Long): String {
         "$kb KB"
     }    }
 
-}
