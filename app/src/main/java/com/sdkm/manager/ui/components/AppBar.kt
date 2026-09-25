@@ -136,7 +136,10 @@ fun SimpleTopAppBar(title: String = "SDKM", subtitle: String? = null) {
 val LocalStandaloneDrawer = staticCompositionLocalOf<() -> Unit> { { } }
 
 @Composable
-fun SDKMStandaloneDrawerHost(content: @Composable () -> Unit) {
+fun SDKMStandaloneDrawerHost(
+    selectedItem: String? = null,
+    content: @Composable () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val drawerState = androidx.compose.material3.rememberDrawerState(androidx.compose.material3.DrawerValue.Closed)
@@ -176,11 +179,11 @@ fun SDKMStandaloneDrawerHost(content: @Composable () -> Unit) {
                     }
                 }
                 HorizontalDivider(Modifier.padding(vertical = 10.dp))
-                StandaloneDrawerItem("Home", Icons.Rounded.Home) { scope.launch { drawerState.close(); openMain(HomeRoute) } }
-                StandaloneDrawerItem("CPU", Icons.Rounded.Memory) { scope.launch { drawerState.close(); openMain(CpuRoute) } }
-                StandaloneDrawerItem("GPU", Icons.Rounded.DeveloperBoard) { scope.launch { drawerState.close(); openMain(GpuRoute) } }
-                StandaloneDrawerItem("Battery", Icons.Rounded.Memory) { scope.launch { drawerState.close(); openMain(BatteryRoute) } }
-                StandaloneDrawerItem("Monitor", Icons.Rounded.MonitorHeart) {
+                StandaloneDrawerItem("Home", Icons.Rounded.Home, selected = selectedItem == "Home") { scope.launch { drawerState.close(); openMain(HomeRoute) } }
+                StandaloneDrawerItem("CPU", Icons.Rounded.Memory, selected = selectedItem == "CPU") { scope.launch { drawerState.close(); openMain(CpuRoute) } }
+                StandaloneDrawerItem("GPU", Icons.Rounded.DeveloperBoard, selected = selectedItem == "GPU") { scope.launch { drawerState.close(); openMain(GpuRoute) } }
+                StandaloneDrawerItem("Battery", Icons.Rounded.Memory, selected = selectedItem == "Battery") { scope.launch { drawerState.close(); openMain(BatteryRoute) } }
+                StandaloneDrawerItem("Monitor", Icons.Rounded.MonitorHeart, selected = selectedItem == "Monitor") {
                     scope.launch { drawerState.close() }
                     if (Settings.canDrawOverlays(context)) {
                         ContextCompat.startForegroundService(context, Intent(context, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_START))
@@ -188,22 +191,22 @@ fun SDKMStandaloneDrawerHost(content: @Composable () -> Unit) {
                         context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")))
                     }
                 }
-                StandaloneDrawerItem("Task Killer", Icons.Rounded.DeleteSweep) {
+                StandaloneDrawerItem("Task Killer", Icons.Rounded.DeleteSweep, selected = selectedItem == "Task Killer") {
                     scope.launch { drawerState.close() }
                     context.startActivity(Intent(context, TaskKillerActivity::class.java))
                     (context as? android.app.Activity)?.finish()
                 }
-                StandaloneDrawerItem("Kernel Settings", Icons.Rounded.Memory) { scope.launch { drawerState.close(); openMain(KernelSettingsRoute) } }
-                StandaloneDrawerItem("Settings", Icons.Rounded.Settings) {
+                StandaloneDrawerItem("Kernel Settings", Icons.Rounded.Memory, selected = selectedItem == "Kernel Settings") { scope.launch { drawerState.close(); openMain(KernelSettingsRoute) } }
+                StandaloneDrawerItem("Settings", Icons.Rounded.Settings, selected = selectedItem == "Settings") {
                     scope.launch { drawerState.close() }
                     context.startActivity(Intent(context, SettingsActivity::class.java))
                     (context as? android.app.Activity)?.finish()
                 }
-                StandaloneDrawerItem("Reboot", Icons.Rounded.RestartAlt) { scope.launch { drawerState.close(); showReboot = true } }
-                StandaloneDrawerItem("About", Icons.Rounded.Info) { scope.launch { drawerState.close(); showAbout = true } }
+                StandaloneDrawerItem("Reboot", Icons.Rounded.RestartAlt, selected = selectedItem == "Reboot") { scope.launch { drawerState.close(); showReboot = true } }
+                StandaloneDrawerItem("About", Icons.Rounded.Info, selected = selectedItem == "About") { scope.launch { drawerState.close(); showAbout = true } }
                 Spacer(Modifier.weight(1f))
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                StandaloneDrawerItem("Exit", Icons.Rounded.ExitToApp) { (context as? android.app.Activity)?.finish() }
+                StandaloneDrawerItem("Exit", Icons.Rounded.ExitToApp, selected = selectedItem == "Exit") { (context as? android.app.Activity)?.finish() }
                 Spacer(Modifier.height(16.dp))
             }
         },
@@ -245,13 +248,18 @@ fun SDKMStandaloneDrawerHost(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun StandaloneDrawerItem(title: String, icon: ImageVector, onClick: () -> Unit) {
+private fun StandaloneDrawerItem(
+    title: String,
+    icon: ImageVector,
+    selected: Boolean = false,
+    onClick: () -> Unit,
+) {
     Surface(
         modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp).fillMaxWidth().clip(RoundedCornerShape(9.dp)).clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surface,
+        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
     ) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-            androidx.compose.material3.Icon(icon, null, Modifier.size(21.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            androidx.compose.material3.Icon(icon, null, Modifier.size(21.dp), tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(16.dp))
             Text(title, style = MaterialTheme.typography.bodyLarge)
         }

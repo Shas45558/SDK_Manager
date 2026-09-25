@@ -242,27 +242,32 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
 
     fun setValue(filePath: String, value: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            Utils.writeFile(filePath, value)
+            // Write through the root shell, then read the node back. The kernel's
+            // returned value is the only value we publish to the UI. This prevents
+            // SDKM from showing a requested value when the kernel rejected/changed it.
+            val written = Utils.writeFile(filePath, value)
+            val actual = if (written) Utils.readFile(filePath) else Utils.readFile(filePath)
+
             when (filePath) {
-                KernelUtils.PRINTK -> _kernelParameters.value.copy(printk = value)
-                KernelUtils.SCHED_LIB_NAME -> _kernelParameters.value.copy(schedLibName = value)
-                KernelUtils.TCP_CONGESTION_ALGORITHM -> _kernelParameters.value.copy(tcpCongestionAlgorithm = value)
-                KernelUtils.SWAPPINESS -> _memory.value = _memory.value.copy(swappiness = value)
-                KernelUtils.PAGE_CLUSTER -> _memory.value = _memory.value.copy(pageCluster = value)
-                KernelUtils.VFS_CACHE_PRESSURE -> _memory.value = _memory.value.copy(vfsCachePressure = value)
-                KernelUtils.DIRTY_BACKGROUND_RATIO -> _memory.value = _memory.value.copy(dirtyBackgroundRatio = value)
-                KernelUtils.EXTRA_FREE_KBYTES -> _memory.value = _memory.value.copy(extraFreeKbytes = value)
-                KernelUtils.WATERMARK_SCALE_FACTOR -> _memory.value = _memory.value.copy(watermarkScaleFactor = value)
-                KernelUtils.DIRTY_RATIO -> _memory.value = _memory.value.copy(dirtyRatio = value)
-                KernelUtils.BURST_SMOOTHNESS_LONG -> _boreScheduler.value.copy(burstSmoothnessLong = value)
-                KernelUtils.BURST_SMOOTHNESS_SHORT -> _boreScheduler.value.copy(burstSmoothnessShort = value)
-                KernelUtils.BURST_CACHE_LIFETIME -> _boreScheduler.value.copy(burstCacheLifetime = value)
-                KernelUtils.BURST_FORK_ATAVISTIC -> _boreScheduler.value.copy(burstForkAtavistic = value)
-                KernelUtils.BURST_PENALTY_OFFSET -> _boreScheduler.value.copy(burstPenaltyOffset = value)
-                KernelUtils.BURST_PENALTY_SCALE -> _boreScheduler.value.copy(burstPenaltyScale = value)
-                KernelUtils.SCHED_UTIL_CLAMP_MAX -> _uclamp.value.copy(uclampMax = value)
-                KernelUtils.SCHED_UTIL_CLAMP_MIN -> _uclamp.value.copy(uclampMin = value)
-                KernelUtils.SCHED_UTIL_CLAMP_MIN_RT_DEFAULT -> _uclamp.value.copy(uclampMinRt = value)
+                KernelUtils.PRINTK -> _kernelParameters.value = _kernelParameters.value.copy(printk = actual)
+                KernelUtils.SCHED_LIB_NAME -> _kernelParameters.value = _kernelParameters.value.copy(schedLibName = actual)
+                KernelUtils.TCP_CONGESTION_ALGORITHM -> _kernelParameters.value = _kernelParameters.value.copy(tcpCongestionAlgorithm = actual)
+                KernelUtils.SWAPPINESS -> _memory.value = _memory.value.copy(swappiness = actual)
+                KernelUtils.PAGE_CLUSTER -> _memory.value = _memory.value.copy(pageCluster = actual)
+                KernelUtils.VFS_CACHE_PRESSURE -> _memory.value = _memory.value.copy(vfsCachePressure = actual)
+                KernelUtils.DIRTY_BACKGROUND_RATIO -> _memory.value = _memory.value.copy(dirtyBackgroundRatio = actual)
+                KernelUtils.EXTRA_FREE_KBYTES -> _memory.value = _memory.value.copy(extraFreeKbytes = actual)
+                KernelUtils.WATERMARK_SCALE_FACTOR -> _memory.value = _memory.value.copy(watermarkScaleFactor = actual)
+                KernelUtils.DIRTY_RATIO -> _memory.value = _memory.value.copy(dirtyRatio = actual)
+                KernelUtils.BURST_SMOOTHNESS_LONG -> _boreScheduler.value = _boreScheduler.value.copy(burstSmoothnessLong = actual)
+                KernelUtils.BURST_SMOOTHNESS_SHORT -> _boreScheduler.value = _boreScheduler.value.copy(burstSmoothnessShort = actual)
+                KernelUtils.BURST_CACHE_LIFETIME -> _boreScheduler.value = _boreScheduler.value.copy(burstCacheLifetime = actual)
+                KernelUtils.BURST_FORK_ATAVISTIC -> _boreScheduler.value = _boreScheduler.value.copy(burstForkAtavistic = actual)
+                KernelUtils.BURST_PENALTY_OFFSET -> _boreScheduler.value = _boreScheduler.value.copy(burstPenaltyOffset = actual)
+                KernelUtils.BURST_PENALTY_SCALE -> _boreScheduler.value = _boreScheduler.value.copy(burstPenaltyScale = actual)
+                KernelUtils.SCHED_UTIL_CLAMP_MAX -> _uclamp.value = _uclamp.value.copy(uclampMax = actual)
+                KernelUtils.SCHED_UTIL_CLAMP_MIN -> _uclamp.value = _uclamp.value.copy(uclampMin = actual)
+                KernelUtils.SCHED_UTIL_CLAMP_MIN_RT_DEFAULT -> _uclamp.value = _uclamp.value.copy(uclampMinRt = actual)
                 else -> {}
             }
         }

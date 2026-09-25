@@ -101,7 +101,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     var openThemeDialog by remember { mutableStateOf(false) }
     var openPollingDialog by remember { mutableStateOf(false) }
 
-    SDKMStandaloneDrawerHost {
+    SDKMStandaloneDrawerHost(selectedItem = "Settings") {
         Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {

@@ -18,7 +18,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -39,21 +38,23 @@ fun KernelSettingsScreen(
     navController: NavController,
 ) {
     val memory by viewModel.memory.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences("sdkm_kernel_settings", android.content.Context.MODE_PRIVATE) }
-    val savedSwappiness = remember { prefs.getInt("swappiness", -1) }
-
-    var swappiness by remember { mutableFloatStateOf(savedSwappiness.takeIf { it in 0..200 }?.toFloat() ?: 0f) }
+    // Always use the live kernel values. Do not cache or persist these values in app preferences.
+    // The kernel is the source of truth.
+    var swappiness by remember { mutableFloatStateOf(0f) }
     var extraFreeKbytes by remember { mutableFloatStateOf(0f) }
     var pageCluster by remember { mutableStateOf("0") }
     var vfsCachePressure by remember { mutableStateOf("200") }
     var dirtyRatio by remember { mutableStateOf("10") }
     var dirtyBackgroundRatio by remember { mutableStateOf("5") }
 
+    // Re-read the kernel whenever this screen is entered/recreated, then keep the
+    // displayed values synchronized with the values actually reported by the kernel.
+    LaunchedEffect(Unit) {
+        viewModel.loadMemory()
+    }
+
     LaunchedEffect(memory.swappiness, memory.extraFreeKbytes, memory.pageCluster, memory.vfsCachePressure, memory.dirtyRatio, memory.dirtyBackgroundRatio) {
-        if (savedSwappiness !in 0..200) {
-            swappiness = memory.swappiness.toFloatOrNull()?.coerceIn(0f, 200f) ?: 0f
-        }
+        swappiness = memory.swappiness.toFloatOrNull()?.coerceIn(0f, 200f) ?: 0f
         extraFreeKbytes = memory.extraFreeKbytes.toFloatOrNull()?.coerceIn(0f, 131072f) ?: 0f
         if (memory.pageCluster.isNotBlank() && memory.pageCluster != "N/A") pageCluster = memory.pageCluster
         if (memory.vfsCachePressure.isNotBlank() && memory.vfsCachePressure != "N/A") vfsCachePressure = memory.vfsCachePressure
@@ -76,9 +77,7 @@ fun KernelSettingsScreen(
                     range = 0f..200f,
                     onValueChange = { swappiness = it },
                     onApply = {
-                        val value = swappiness.toInt()
-                        prefs.edit().putInt("swappiness", value).apply()
-                        viewModel.setValue(KernelUtils.SWAPPINESS, value.toString())
+                        viewModel.setValue(KernelUtils.SWAPPINESS, swappiness.toInt().toString())
                     },
                 )
             }
