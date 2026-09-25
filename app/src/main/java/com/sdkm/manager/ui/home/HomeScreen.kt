@@ -54,6 +54,8 @@ import androidx.navigation.NavController
 import com.sdkm.manager.ui.battery.BatteryViewModel
 import com.sdkm.manager.ui.soc.SoCViewModel
 import com.sdkm.manager.ui.components.SimpleTopAppBar
+import com.sdkm.manager.ui.navigation.CpuRoute
+import com.sdkm.manager.ui.navigation.GpuRoute
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavController) {
