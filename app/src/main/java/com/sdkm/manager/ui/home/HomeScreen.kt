@@ -122,8 +122,15 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item {
-                    DashboardSection("CPU") {
-                        MetricHeader("Current", cpuState.currentFreq + " MHz", "Load", cpuUsage + "%")
+                    DashboardSection("CPU", onClick = { navController.navigate(CpuRoute) }) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text("Load", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(cpuUsage + "%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                        }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -187,7 +194,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                     }
                 }
                 item {
-                    DashboardSection("GPU") {
+                    DashboardSection("GPU", onClick = { navController.navigate(GpuRoute) }) {
                         MetricHeader("Current", gpuState.currentFreq + " MHz", "Load", gpuUsage + "%")
                         MiniUsageGraph(gpuHistory, Modifier.fillMaxWidth().height(96.dp))
                         CompactRow("Governor", gpuState.gov)
@@ -196,14 +203,16 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                 }
                 item {
                     DashboardSection("RAM & ZRAM") {
-                        val ramUsed = formatBytes(ramState.usedBytes)
                         val ramTotal = formatBytes(ramState.totalBytes)
-                        val zramUsed = formatBytes(zramMemory.usedBytes)
+                        val ramFree = formatBytes((ramState.totalBytes - ramState.usedBytes).coerceAtLeast(0L))
                         val zramTotal = formatBytes(zramMemory.totalBytes)
-                        CompactRow("RAM", "$ramUsed / $ramTotal")
+                        val zramFree = formatBytes((zramMemory.totalBytes - zramMemory.usedBytes).coerceAtLeast(0L))
+                        CompactRow("RAM Total", ramTotal)
+                        CompactRow("RAM Free", ramFree)
                         val ramRatio = if (ramState.totalBytes > 0) (ramState.usedBytes.toFloat() / ramState.totalBytes).coerceIn(0f, 1f) else 0f
                         MiniBar(ramRatio)
-                        CompactRow("ZRAM", "$zramUsed / $zramTotal")
+                        CompactRow("ZRAM Total", zramTotal)
+                        CompactRow("ZRAM Free", zramFree)
                         val zramRatio = if (zramMemory.totalBytes > 0) (zramMemory.usedBytes.toFloat() / zramMemory.totalBytes).coerceIn(0f, 1f) else 0f
                         MiniBar(zramRatio)
                     }
@@ -255,10 +264,18 @@ private fun DashboardBatterySection(batteryInfo: BatteryViewModel.BatteryInfo) {
 }
 
 @Composable
-private fun DashboardSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun DashboardSection(
+    title: String,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 3.dp))
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(9.dp)) {
+        Card(
+            modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            shape = RoundedCornerShape(9.dp),
+        ) {
             Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), content = content)
         }
     }
