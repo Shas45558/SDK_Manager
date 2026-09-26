@@ -32,7 +32,6 @@
 package com.sdkm.manager.ui.components
 
 import android.content.Intent
-import com.sdkm.manager.ui.monitor.MonitorActivity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -98,6 +97,7 @@ import com.sdkm.manager.ui.navigation.HomeRoute
 import com.sdkm.manager.ui.navigation.CpuRoute
 import com.sdkm.manager.ui.navigation.GpuRoute
 import com.sdkm.manager.ui.navigation.MemoryRoute
+import com.sdkm.manager.ui.navigation.MonitorRoute
 import com.sdkm.manager.ui.navigation.LogsRoute
 import com.sdkm.manager.ui.navigation.ProfilesRoute
 import com.sdkm.manager.ui.home.HomeViewModel
@@ -184,11 +184,7 @@ fun SDKMStandaloneDrawerHost(selectedItem: String? = null, content: @Composable 
                 StandaloneDrawerItem("CPU", Icons.Rounded.Memory) { scope.launch { drawerState.close(); openMain(CpuRoute) } }
                 StandaloneDrawerItem("GPU", Icons.Rounded.DeveloperBoard) { scope.launch { drawerState.close(); openMain(GpuRoute) } }
                 StandaloneDrawerItem("Monitor", Icons.Rounded.MonitorHeart, selected = selectedItem == "Monitor") {
-                    scope.launch { drawerState.close() }
-                    if (selectedItem != "Monitor") {
-                        context.startActivity(Intent(context, MonitorActivity::class.java))
-                        (context as? android.app.Activity)?.finish()
-                    }
+                    scope.launch { drawerState.close(); openMain(MonitorRoute) }
                 }
                 StandaloneDrawerItem("Task Killer", Icons.Rounded.DeleteSweep) {
                     scope.launch { drawerState.close() }

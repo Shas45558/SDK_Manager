@@ -64,7 +64,6 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.sdkm.manager.ui.home.HomeViewModel
 import com.sdkm.manager.ui.monitor.GameMonitorService
-import com.sdkm.manager.ui.monitor.MonitorActivity
 import com.sdkm.manager.ui.settings.SettingsActivity
 import com.sdkm.manager.ui.taskKiller.TaskKillerActivity
 import com.sdkm.manager.utils.Utils
@@ -120,7 +119,7 @@ fun SDKMDrawer(
         }
         DrawerItem("Monitor", Icons.Rounded.MonitorHeart, selectedRoute == MonitorRoute) {
             scope.launch { drawerClose() }
-            context.startActivity(Intent(context, MonitorActivity::class.java))
+            navController.navigate(MonitorRoute) { launchSingleTop = true }
         }
         DrawerItem("Kernel Tuning", Icons.Rounded.Tune, selectedRoute == KernelTuningRoute) {
             scope.launch { drawerClose() }

@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.sdkm.manager.ui.theme.SDKMTheme
 import com.sdkm.manager.ui.components.SDKMStandaloneDrawerHost
-import com.sdkm.manager.ui.components.SDKMStandaloneHamburgerMenu
+import com.sdkm.manager.ui.components.SimpleTopAppBar
 import com.sdkm.manager.utils.KernelUtils
 import com.sdkm.manager.utils.SoCUtils
 import com.sdkm.manager.utils.Utils
@@ -62,7 +62,13 @@ class MonitorActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { SDKMTheme { MonitorScreen(onNotificationRequest = { requestNotificationPermission() }) } }
+        setContent {
+            SDKMTheme {
+                SDKMStandaloneDrawerHost(selectedItem = "Monitor") {
+                    MonitorScreen(onNotificationRequest = { requestNotificationPermission() })
+                }
+            }
+        }
     }
 
     private fun requestNotificationPermission() {
@@ -86,7 +92,7 @@ private data class LiveStats(
 )
 
 @androidx.compose.runtime.Composable
-private fun MonitorScreen(onNotificationRequest: () -> Unit) {
+fun MonitorScreen(onNotificationRequest: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var refreshMs by remember { mutableStateOf(1000L) }
     var stats by remember { mutableStateOf(readLiveStats(context)) }
@@ -104,16 +110,10 @@ private fun MonitorScreen(onNotificationRequest: () -> Unit) {
         }
     }
 
-    SDKMStandaloneDrawerHost(selectedItem = "Monitor") {
-        androidx.compose.material3.Scaffold(
-            topBar = {
-                androidx.compose.material3.TopAppBar(
-                    title = { Text("Monitor") },
-                    navigationIcon = { SDKMStandaloneHamburgerMenu() },
-                )
-            },
-        ) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    androidx.compose.material3.Scaffold(
+        topBar = { SimpleTopAppBar(title = "Monitor") },
+    ) { padding ->
+        LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item { MonitorCard("CPU", "${stats.cpu}% • ${stats.cpuFreq} MHz", cpuHistory.value) }
             item { MonitorCard("GPU", "${stats.gpu}% • ${stats.gpuFreq} MHz", gpuHistory.value) }
             item { MonitorCard("RAM", "${stats.ram}% used", ramHistory.value) }
@@ -159,9 +159,10 @@ private fun MonitorScreen(onNotificationRequest: () -> Unit) {
                                     ContextCompat.startForegroundService(context, Intent(context, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_START_OVERLAY))
                                 } else context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
                             }) { Icon(Icons.Filled.Visibility, null); Spacer(Modifier.height(1.dp)); Text("Overlay") }
-                            Button(onClick = {
-                                ContextCompat.startForegroundService(context, Intent(context, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_START_NOTIFICATION))
-                            }) { Icon(Icons.Filled.Notifications, null); Text("Notification") }
+                            Button(onClick = onNotificationRequest) {
+                                Icon(Icons.Filled.Notifications, null)
+                                Text("Notification")
+                            }
                             OutlinedButton(onClick = { context.startService(Intent(context, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_STOP)) }) { Icon(Icons.Filled.Stop, null); Text("Stop") }
                         }
                     }

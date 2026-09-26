@@ -31,9 +31,11 @@
 
 package com.sdkm.manager.ui
 
+import android.Manifest
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
@@ -82,6 +84,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.lifecycleScope
@@ -94,9 +97,25 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.sdkm.manager.ui.navigation.HomeRoute
+import com.sdkm.manager.ui.monitor.GameMonitorService
 
 class MainActivity : ComponentActivity() {
     private var isRoot by mutableStateOf(false)
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) startMonitorNotificationService()
+    }
+
+    fun requestMonitorNotification() {
+        if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            startMonitorNotificationService()
+        }
+    }
+
+    private fun startMonitorNotificationService() {
+        ContextCompat.startForegroundService(this, android.content.Intent(this, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_START_NOTIFICATION))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

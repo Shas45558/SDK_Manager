@@ -35,7 +35,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +53,8 @@ import androidx.navigation.NavController
 import com.sdkm.manager.ui.battery.BatteryViewModel
 import com.sdkm.manager.ui.soc.SoCViewModel
 import com.sdkm.manager.ui.components.SimpleTopAppBar
+import com.sdkm.manager.ui.navigation.CpuRoute
+import com.sdkm.manager.ui.navigation.GpuRoute
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavController) {
@@ -100,18 +101,6 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
     val cpuCoreMetrics by socViewModel.cpuCoreMetrics.collectAsStateWithLifecycle()
     val batteryInfo by batteryViewModel.batteryInfo.collectAsStateWithLifecycle()
 
-    val cpuHistory = remember { mutableStateListOf<Float>() }
-    val gpuHistory = remember { mutableStateListOf<Float>() }
-    val cpuPercent = cpuUsage.filter { it.isDigit() || it == '.' }.toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f
-    val gpuPercent = gpuUsage.filter { it.isDigit() || it == '.' }.toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f
-    if (cpuHistory.lastOrNull() != cpuPercent) {
-        cpuHistory.add(cpuPercent)
-        if (cpuHistory.size > 32) cpuHistory.removeAt(0)
-    }
-    if (gpuHistory.lastOrNull() != gpuPercent) {
-        gpuHistory.add(gpuPercent)
-        if (gpuHistory.size > 32) gpuHistory.removeAt(0)
-    }
 
     Scaffold(
         topBar = { SimpleTopAppBar(title = "SDKM", subtitle = "Dashboard") },
@@ -122,88 +111,53 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item {
-                    DashboardSection("CPU") {
+                    DashboardSection("CPU", modifier = Modifier.clickable { navController.navigate(CpuRoute) }) {
                         MetricHeader("Current", cpuState.currentFreq + " MHz", "Load", cpuUsage + "%")
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            ClusterChip(
-                                title = "Little",
-                                current = cpuState.currentFreq,
-                                max = cpuState.maxFreq,
-                                governor = cpuState.gov,
-                                modifier = Modifier.weight(1f),
-                            )
-                            if (hasBigCluster) {
-                                ClusterChip(
-                                    title = "Big",
-                                    current = bigClusterState.currentFreq,
-                                    max = bigClusterState.maxFreq,
-                                    governor = bigClusterState.gov,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                            if (hasPrimeCluster) {
-                                ClusterChip(
-                                    title = "Prime",
-                                    current = primeClusterState.currentFreq,
-                                    max = primeClusterState.maxFreq,
-                                    governor = primeClusterState.gov,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            MiniUsageGraph(cpuHistory, Modifier.weight(1.55f).height(132.dp))
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(5.dp),
-                            ) {
-                                cpuCoreMetrics.take(8).forEach { core ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text("CPU${core.cpu}", style = MaterialTheme.typography.labelMedium)
-                                        Text("${core.load}%", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                                        Text("${core.frequencyMHz} MHz", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            cpuCoreMetrics.take(8).chunked(4).forEach { rowCores ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    rowCores.forEach { core ->
+                                        Card(
+                                            modifier = Modifier.weight(1f),
+                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                                            shape = RoundedCornerShape(8.dp),
+                                        ) {
+                                            Column(Modifier.padding(horizontal = 8.dp, vertical = 7.dp)) {
+                                                Text("CPU${core.cpu}", style = MaterialTheme.typography.labelMedium)
+                                                Text("${core.frequencyMHz} MHz", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text("${core.load}%", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                            }
+                                        }
                                     }
+                                    repeat(4 - rowCores.size) { Spacer(Modifier.weight(1f)) }
                                 }
                             }
                         }
                         CompactRow("Little Max", cpuState.maxFreq + " MHz")
-                        if (hasBigCluster) {
-                            CompactRow("Big Max", bigClusterState.maxFreq + " MHz")
-                        }
-                        if (hasPrimeCluster) {
-                            CompactRow("Prime Max", primeClusterState.maxFreq + " MHz")
-                        }
+                        if (hasBigCluster) CompactRow("Big Max", bigClusterState.maxFreq + " MHz")
+                        if (hasPrimeCluster) CompactRow("Prime Max", primeClusterState.maxFreq + " MHz")
                     }
                 }
                 item {
-                    DashboardSection("GPU") {
+                    DashboardSection("GPU", modifier = Modifier.clickable { navController.navigate(GpuRoute) }) {
                         MetricHeader("Current", gpuState.currentFreq + " MHz", "Load", gpuUsage + "%")
-                        MiniUsageGraph(gpuHistory, Modifier.fillMaxWidth().height(96.dp))
-                        CompactRow("Governor", gpuState.gov)
-                        CompactRow("Max", gpuState.maxFreq + " MHz")
                     }
                 }
                 item {
                     DashboardSection("RAM & ZRAM", modifier = Modifier.clickable { navController.navigate("memory") }) {
-                        val ramUsed = formatBytes(ramState.usedBytes)
                         val ramTotal = formatBytes(ramState.totalBytes)
-                        val zramUsed = formatBytes(zramMemory.usedBytes)
+                        val ramFree = formatBytes(ramState.availableBytes)
                         val zramTotal = formatBytes(zramMemory.totalBytes)
-                        CompactRow("RAM", "$ramUsed / $ramTotal")
+                        val zramFree = formatBytes((zramMemory.totalBytes - zramMemory.usedBytes).coerceAtLeast(0L))
+                        CompactRow("RAM Total", ramTotal)
+                        CompactRow("RAM Free", ramFree)
                         val ramRatio = if (ramState.totalBytes > 0) (ramState.usedBytes.toFloat() / ramState.totalBytes).coerceIn(0f, 1f) else 0f
                         MiniBar(ramRatio)
-                        CompactRow("ZRAM", "$zramUsed / $zramTotal")
+                        CompactRow("ZRAM Total", zramTotal)
+                        CompactRow("ZRAM Free", zramFree)
                         val zramRatio = if (zramMemory.totalBytes > 0) (zramMemory.usedBytes.toFloat() / zramMemory.totalBytes).coerceIn(0f, 1f) else 0f
                         MiniBar(zramRatio)
                     }

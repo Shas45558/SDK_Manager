@@ -57,10 +57,10 @@ import com.sdkm.manager.R
 import com.sdkm.manager.ui.battery.BatteryScreen
 import com.sdkm.manager.ui.home.HomeScreen
 import com.sdkm.manager.ui.home.HomeViewModel
-import com.sdkm.manager.ui.kernelParameter.KernelParameterScreen
 import com.sdkm.manager.ui.kernelParameter.MemoryScreen
 import com.sdkm.manager.ui.kernelTuning.KernelTuningScreen
 import com.sdkm.manager.ui.logs.LogsScreen
+import com.sdkm.manager.ui.monitor.MonitorScreen
 import com.sdkm.manager.ui.profiles.ProfilesScreen
 import com.sdkm.manager.ui.soc.SoCScreen
 import com.sdkm.manager.ui.soc.SocSection
@@ -149,11 +149,13 @@ fun SDKMNavHost(startDestination: String = HomeRoute, openDrawerOnStart: Boolean
                 composable(BatteryRoute) {
                     BatteryScreen(navController = navController)
                 }
-                composable(KernelRoute) {
-                    KernelParameterScreen(navController = navController)
-                }
                 composable(MemoryRoute) {
                     MemoryScreen(navController = navController)
+                }
+                composable(MonitorRoute) {
+                    MonitorScreen(onNotificationRequest = {
+                        (context as? com.sdkm.manager.ui.MainActivity)?.requestMonitorNotification()
+                    })
                 }
                 composable(KernelTuningRoute) {
                     KernelTuningScreen(navController = navController)
@@ -174,7 +176,6 @@ const val SoCRoute = "soc"
 const val CpuRoute = "cpu"
 const val GpuRoute = "gpu"
 const val BatteryRoute = "battery"
-const val KernelRoute = "kernel"
 const val MemoryRoute = "memory"
 const val KernelTuningRoute = "kernel_tuning"
 const val MonitorRoute = "monitor"

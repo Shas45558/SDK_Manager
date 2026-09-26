@@ -213,9 +213,15 @@ object SoCUtils {
         }
 
         val opp = Shell.cmd("cat $MTK_GPU_OPP_LOGS").exec()
-        opp.isSuccess && opp.out.any {
-            it.trim().split("\\s+".toRegex()).firstOrNull()?.toLongOrNull()?.let { hz -> hz > 0 } == true
-        }
+        if (opp.isSuccess && opp.out.any {
+                it.trim().split("\\s+".toRegex()).firstOrNull()?.toLongOrNull()?.let { hz -> hz > 0 } == true
+            }) return true
+
+        // Some MT6768 kernels expose gpufreq only through /proc. In that
+        // case the GED sysfs nodes above may be absent even though the real
+        // MediaTek DVFS driver is active. Recognize the proc interface so
+        // the manager does not fall back to the unrelated KGSL 200 MHz path.
+        Shell.cmd("test -r $MTK_GPU_VAR_DUMP || test -r $MTK_GPU_OPP_DUMP").exec().isSuccess
     }.getOrDefault(false)
 
     private var sPrevTotal: Long = -1

@@ -101,7 +101,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     var openThemeDialog by remember { mutableStateOf(false) }
     var openPollingDialog by remember { mutableStateOf(false) }
 
-    SDKMStandaloneDrawerHost {
+    SDKMStandaloneDrawerHost(selectedItem = "Settings") {
         Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -151,8 +151,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 )
             },
             text = {
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             viewModel.setThemeMode(ThemeMode.LIGHT)
                             openThemeDialog = false
@@ -172,6 +173,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                         }
                     }
                     Button(
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             viewModel.setThemeMode(ThemeMode.DARK)
                             openThemeDialog = false
@@ -191,6 +193,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                         }
                     }
                     Button(
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             viewModel.setThemeMode(ThemeMode.SYSTEM_DEFAULT)
                             openThemeDialog = false

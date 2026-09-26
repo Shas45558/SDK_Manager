@@ -65,9 +65,6 @@ class GameMonitorService : Service() {
         super.onCreate()
         loadMetricPreferences()
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification())
-        if (overlayEnabled && Settings.canDrawOverlays(this)) showOverlay()
-        startMonitoring()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -76,7 +73,10 @@ class GameMonitorService : Service() {
             ACTION_START_NOTIFICATION -> overlayEnabled = false
             ACTION_START_OVERLAY, ACTION_START -> overlayEnabled = true
         }
-        if (overlayEnabled && !Settings.canDrawOverlays(this)) { stopSelf(); return START_NOT_STICKY }
+        if (intent?.action == ACTION_START_OVERLAY || intent?.action == ACTION_START) {
+            if (!Settings.canDrawOverlays(this)) { stopSelf(); return START_NOT_STICKY }
+        }
+        startForeground(NOTIFICATION_ID, buildNotification())
         if (overlayEnabled && overlay == null) showOverlay()
         if (!overlayEnabled && overlay != null) { runCatching { windowManager?.removeView(overlay) }; overlay = null }
         startMonitoring()
