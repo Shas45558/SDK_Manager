@@ -81,6 +81,13 @@ import com.sdkm.manager.utils.Utils
 import android.net.Uri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sdkm.manager.ui.MainActivity
+import com.sdkm.manager.ui.navigation.HomeRoute
+import com.sdkm.manager.ui.navigation.CpuRoute
+import com.sdkm.manager.ui.navigation.GpuRoute
+import com.sdkm.manager.ui.navigation.MemoryRoute
+import com.sdkm.manager.ui.navigation.MonitorRoute
+import com.sdkm.manager.ui.navigation.LogsRoute
+import com.sdkm.manager.ui.navigation.ProfilesRoute
 
 @Composable
 fun SimpleTopAppBar(

@@ -213,7 +213,6 @@ fun LogsScreen() {
                 )
             }
         }
-    }
 
     if (clearDialog) {
         AlertDialog(
