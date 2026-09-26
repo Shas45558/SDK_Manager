@@ -32,9 +32,9 @@ package com.sdkm.manager.ui.soc
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
-import com.topjohnwu.superuser.Shell
 import androidx.lifecycle.viewModelScope
 import com.sdkm.manager.ui.settings.SettingsPreference
+import com.topjohnwu.superuser.Shell
 import com.sdkm.manager.utils.KernelUtils
 import com.sdkm.manager.utils.SoCUtils
 import com.sdkm.manager.utils.Utils
