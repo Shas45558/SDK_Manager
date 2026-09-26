@@ -142,7 +142,7 @@ private fun TaskKillerScreen(onBack: () -> Unit) {
         }
     }
 
-    SDKMStandaloneDrawerHost(selectedItem = "Task Killer") {
+    SDKMStandaloneDrawerHost {
         Scaffold(
             topBar = {
                 TopAppBar(

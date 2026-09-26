@@ -46,11 +46,15 @@ fun KernelTuningScreen(
             } }
             item { TuningSection("Read-ahead", "Block-device read-ahead in KB.") {
                 state.devices.forEach { device ->
-                    NumericCard("${device.name} read-ahead", device.readAhead, viewModel.input["ra:${device.name}"] ?: device.readAhead) {
-                        viewModel.input["ra:${device.name}"] = it
-                    } onApply@{
-                        viewModel.write("/sys/block/${device.name}/queue/read_ahead_kb", viewModel.input["ra:${device.name}"] ?: device.readAhead)
-                    }
+                    NumericCard(
+                        title = "${device.name} read-ahead",
+                        current = device.readAhead,
+                        value = viewModel.input["ra:${device.name}"] ?: device.readAhead,
+                        onValue = { viewModel.input["ra:${device.name}"] = it },
+                        onApply = {
+                            viewModel.write("/sys/block/${device.name}/queue/read_ahead_kb", viewModel.input["ra:${device.name}"] ?: device.readAhead)
+                        },
+                    )
                 }
             } }
             item { TuningSection("Entropy", "Randomness-pool controls, only when the kernel exposes them.") {

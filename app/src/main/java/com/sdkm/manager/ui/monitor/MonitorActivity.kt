@@ -148,6 +148,7 @@ private fun MonitorScreen(onBack: () -> Unit) {
 
 @androidx.compose.runtime.Composable
 private fun MonitorCard(title: String, subtitle: String, history: List<Float>?) {
+    val graphColor = MaterialTheme.colorScheme.primary
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
@@ -161,7 +162,7 @@ private fun MonitorCard(title: String, subtitle: String, history: List<Float>?) 
                             val y = size.height * (1f - v.coerceIn(0f, 100f) / 100f)
                             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
                         }
-                        drawPath(path, MaterialTheme.colorScheme.primary, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f))
+                        drawPath(path, graphColor, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f))
                     }
                 }
             }
@@ -179,10 +180,10 @@ private fun readLiveStats(context: Context): LiveStats {
     val cpuFreq = listOf(SoCUtils.CURRENT_FREQ_CPU0, SoCUtils.CURRENT_FREQ_CPU3, SoCUtils.CURRENT_FREQ_CPU4, SoCUtils.CURRENT_FREQ_CPU6, SoCUtils.CURRENT_FREQ_CPU7).mapNotNull { Utils.readFile(it).toLongOrNull() }.maxOrNull()?.div(1000) ?: 0
     val gpuFreq = if (SoCUtils.isMtkGpu()) SoCUtils.readMtkGpuCurrentFreq().toIntOrNull() ?: 0 else Utils.readFile(SoCUtils.CURRENT_FREQ_GPU).toLongOrNull()?.div(1000)?.toInt() ?: 0
     val bm = context.getSystemService(BatteryManager::class.java)
-    val voltage = (bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_VOLTAGE) ?: 0) / 1000000f
+    val intent = context.registerReceiver(null, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+    val voltage = (intent?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) ?: 0) / 1000f
     val current = (bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) ?: 0) / 1000f
     val watts = voltage * kotlin.math.abs(current) / 1000f
-    val intent = context.registerReceiver(null, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))
     val temp = (intent?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0) / 10f
     val status = when (intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1)) { BatteryManager.BATTERY_STATUS_CHARGING -> "Charging"; BatteryManager.BATTERY_STATUS_FULL -> "Full"; else -> "Discharging" }
     val sensors = readThermalSensors()
