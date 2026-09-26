@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -149,7 +150,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                 item {
                     DashboardSection("RAM & ZRAM", modifier = Modifier.clickable { navController.navigate("memory") }) {
                         val ramTotal = formatBytes(ramState.totalBytes)
-                        val ramFree = formatBytes(ramState.availableBytes)
+                        val ramFree = formatBytes(ramState.freeBytes)
                         val zramTotal = formatBytes(zramMemory.totalBytes)
                         val zramFree = formatBytes((zramMemory.totalBytes - zramMemory.usedBytes).coerceAtLeast(0L))
                         CompactRow("RAM Total", ramTotal)

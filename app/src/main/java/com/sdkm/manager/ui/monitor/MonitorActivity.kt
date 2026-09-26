@@ -170,7 +170,6 @@ fun MonitorScreen(onNotificationRequest: () -> Unit) {
             }
         }
     }
-    }
 }
 
 @androidx.compose.runtime.Composable
