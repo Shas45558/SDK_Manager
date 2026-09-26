@@ -78,8 +78,8 @@ android {
         applicationId = "com.sdkm.manager"
         minSdk = 31
         targetSdk = 36
-        versionCode = 200
-        versionName = "2.0.0"
+        versionCode = 131
+        versionName = "1.3.1"
 
         vectorDrawables {
             useSupportLibrary = true

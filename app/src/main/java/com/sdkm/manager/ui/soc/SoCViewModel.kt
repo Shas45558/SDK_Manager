@@ -47,6 +47,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class SoCViewModel(application: Application) : AndroidViewModel(application) {
+    private companion object {
+        const val CPU_BOOST = "/sys/module/ged/parameters/enable_cpu_boost"
+        const val FORCE_CPU_BOOST = "/sys/module/ged/parameters/gx_force_cpu_boost"
+        const val BOOST_UPPER_BOUND = "/sys/module/ged/parameters/boost_upper_bound"
+        const val DEBOOST_REDUCE = "/sys/module/ged/parameters/deboost_reduce"
+        const val GPU_BOOST = "/sys/module/ged/parameters/enable_gpu_boost"
+        const val GPU_BOOST_ENABLE = "/sys/module/ged/parameters/boost_gpu_enable"
+        const val GED_BOOST = "/sys/module/ged/parameters/ged_boost_enable"
+        const val GPU_DVFS = "/sys/module/ged/parameters/gpu_dvfs_enable"
+        const val GPU_BOOST_FREQ = "/sys/module/ged/parameters/gpu_cust_boost_freq"
+        const val GPU_VAR_DUMP = "/proc/gpufreq/gpufreq_var_dump"
+        const val GPU_OPP_DUMP = "/proc/gpufreq/gpufreq_opp_dump"
+    }
     private val settingsPreference = SettingsPreference.getInstance(application)
 
     data class CPUState(
@@ -173,6 +186,28 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
     private val _gpuUsage = MutableStateFlow("N/A")
     val gpuUsage: StateFlow<String> = _gpuUsage
 
+    private val _cpuBoostEnabled = MutableStateFlow(false)
+    val cpuBoostEnabled: StateFlow<Boolean> = _cpuBoostEnabled
+    private val _forceCpuBoostEnabled = MutableStateFlow(false)
+    val forceCpuBoostEnabled: StateFlow<Boolean> = _forceCpuBoostEnabled
+    private val _boostUpperBound = MutableStateFlow("100")
+    val boostUpperBound: StateFlow<String> = _boostUpperBound
+    private val _deboostReduce = MutableStateFlow("0")
+    val deboostReduce: StateFlow<String> = _deboostReduce
+
+    private val _gpuBoostEnabled = MutableStateFlow(false)
+    val gpuBoostEnabled: StateFlow<Boolean> = _gpuBoostEnabled
+    private val _gpuBoostEnable = MutableStateFlow(false)
+    val gpuBoostEnable: StateFlow<Boolean> = _gpuBoostEnable
+    private val _gedBoostEnabled = MutableStateFlow(false)
+    val gedBoostEnabled: StateFlow<Boolean> = _gedBoostEnabled
+    private val _gpuDvfsEnabled = MutableStateFlow(false)
+    val gpuDvfsEnabled: StateFlow<Boolean> = _gpuDvfsEnabled
+    private val _gpuEffectiveLimit = MutableStateFlow("N/A")
+    val gpuEffectiveLimit: StateFlow<String> = _gpuEffectiveLimit
+    private val _gpuBoostFrequency = MutableStateFlow("N/A")
+    val gpuBoostFrequency: StateFlow<String> = _gpuBoostFrequency
+
     private val _hasBigCluster = MutableStateFlow(false)
     val hasBigCluster: StateFlow<Boolean> = _hasBigCluster
 
@@ -249,6 +284,7 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
 
         _hasCpuSchedBoostOnInput.value = Utils.testFile(SoCUtils.CPU_SCHED_BOOST_ON_INPUT)
         _cpuSchedBoostOnInput.value = Utils.readFile(SoCUtils.CPU_SCHED_BOOST_ON_INPUT)
+        loadCpuGedBoost()
     }
 
     private fun loadGPUData() {
@@ -295,6 +331,63 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
         _hasGPUThrottling.value = Utils.testFile(SoCUtils.GPU_THROTTLING)
     }
 
+    private fun loadCpuGedBoost() {
+        _cpuBoostEnabled.value = Utils.readFile(CPU_BOOST) == "1"
+        _forceCpuBoostEnabled.value = Utils.readFile(FORCE_CPU_BOOST) == "1"
+        _boostUpperBound.value = Utils.readFile(BOOST_UPPER_BOUND).ifBlank { "100" }
+        _deboostReduce.value = Utils.readFile(DEBOOST_REDUCE).ifBlank { "0" }
+    }
+
+    private fun loadGpuGedBoost() {
+        _gpuBoostEnabled.value = Utils.readFile(GPU_BOOST) == "1"
+        _gpuBoostEnable.value = Utils.readFile(GPU_BOOST_ENABLE) == "1"
+        _gedBoostEnabled.value = Utils.readFile(GED_BOOST) == "1"
+        _gpuDvfsEnabled.value = Utils.readFile(GPU_DVFS) == "1"
+        _gpuBoostFrequency.value = readGpuBoostFrequency()
+        _gpuEffectiveLimit.value = readGpuEffectiveLimit()
+    }
+
+    fun setCpuBoostEnabled(enabled: Boolean) = writeGedBoolean(CPU_BOOST, enabled) { _cpuBoostEnabled.value = it }
+    fun setForceCpuBoostEnabled(enabled: Boolean) = writeGedBoolean(FORCE_CPU_BOOST, enabled) { _forceCpuBoostEnabled.value = it }
+    fun setGpuBoostEnabled(enabled: Boolean) = writeGedBoolean(GPU_BOOST, enabled) { _gpuBoostEnabled.value = it }
+    fun setGpuBoostEnable(enabled: Boolean) = writeGedBoolean(GPU_BOOST_ENABLE, enabled) { _gpuBoostEnable.value = it }
+    fun setGedBoostEnabled(enabled: Boolean) = writeGedBoolean(GED_BOOST, enabled) { _gedBoostEnabled.value = it }
+    fun setGpuDvfsEnabled(enabled: Boolean) = writeGedBoolean(GPU_DVFS, enabled) { _gpuDvfsEnabled.value = it }
+
+    private fun readGpuBoostFrequency(): String {
+        val raw = Utils.readFile(GPU_BOOST_FREQ).trim()
+        return raw.toLongOrNull()?.let { "${it / 1000} MHz" } ?: "N/A"
+    }
+
+    private fun readGpuEffectiveLimit(): String = runCatching {
+        val dump = Shell.cmd("cat $GPU_VAR_DUMP").exec()
+        if (!dump.isSuccess) return "N/A"
+        val idx = dump.out.asSequence()
+            .mapNotNull { Regex("g_max_limited_idx\\s*=\\s*(\\d+)").find(it)?.groupValues?.getOrNull(1)?.toIntOrNull() }
+            .firstOrNull() ?: return "N/A"
+        val line = Shell.cmd("sed -n '${idx + 1}p' $GPU_OPP_DUMP").exec().out.firstOrNull() ?: return "OPP $idx"
+        val freq = Regex("freq\\s*=\\s*(\\d+)").find(line)?.groupValues?.getOrNull(1)?.toLongOrNull()
+        if (freq != null) "${freq / 1000} MHz" else "OPP $idx"
+    }.getOrDefault("N/A")
+
+    private fun writeGedBoolean(path: String, enabled: Boolean, update: (Boolean) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            Utils.writeFile(path, if (enabled) 1 else 0)
+            update(Utils.readFile(path) == "1")
+        }
+    }
+
+    fun setBoostUpperBound(value: String) = writeGedNumber(BOOST_UPPER_BOUND, value) { _boostUpperBound.value = it }
+    fun setDeboostReduce(value: String) = writeGedNumber(DEBOOST_REDUCE, value) { _deboostReduce.value = it }
+
+    private fun writeGedNumber(path: String, value: String, update: (String) -> Unit) {
+        val clean = value.trim().toIntOrNull()?.takeIf { it >= 0 } ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            Utils.writeFile(path, clean)
+            update(Utils.readFile(path).ifBlank { clean.toString() })
+        }
+    }
+
     private fun loadRamData(context: Context) {
         val ram = SoCUtils.getRamMemoryInfo(context)
         _ramState.value = RamState(
@@ -325,6 +418,7 @@ class SoCViewModel(application: Application) : AndroidViewModel(application) {
             Utils.getTemp(context, SoCUtils.GPU_TEMP)
         }
         _gpuUsage.value = SoCUtils.getGpuUsage(context)
+        loadGpuGedBoost()
     }
 
     private fun detectClusterConfigs(): Pair<ClusterConfig.Big?, ClusterConfig.Prime?> {

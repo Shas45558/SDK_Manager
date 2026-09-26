@@ -74,6 +74,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -81,6 +82,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -770,8 +772,78 @@ private fun CPUControlFragment(viewModel: SoCViewModel) {
         CPULittleClusterCard(viewModel)
         if (hasBigCluster) BigClusterCard(viewModel)
         if (hasPrimeCluster) PrimeClusterCard(viewModel)
+        GEDCPUBoostCard(viewModel)
         CPUCoreDisableDialogCard(viewModel)
     }
+}
+
+@Composable
+private fun GEDCPUBoostCard(viewModel: SoCViewModel) {
+    val boost by viewModel.cpuBoostEnabled.collectAsStateWithLifecycle()
+    val force by viewModel.forceCpuBoostEnabled.collectAsStateWithLifecycle()
+    val upper by viewModel.boostUpperBound.collectAsStateWithLifecycle()
+    val deboost by viewModel.deboostReduce.collectAsStateWithLifecycle()
+    var editUpper by rememberSaveable { mutableStateOf(false) }
+    var editDeboost by rememberSaveable { mutableStateOf(false) }
+    var upperText by rememberSaveable { mutableStateOf(upper) }
+    var deboostText by rememberSaveable { mutableStateOf(deboost) }
+
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), shape = RoundedCornerShape(18.dp)) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("CPU Boost", style = MaterialTheme.typography.titleMedium)
+            BoostSwitchRow("CPU Boost", boost) { viewModel.setCpuBoostEnabled(it) }
+            BoostSwitchRow("Force CPU Boost", force) { viewModel.setForceCpuBoostEnabled(it) }
+            BoostValueRow("Boost Upper Bound", upper) { upperText = upper; editUpper = true }
+            BoostValueRow("Deboost Reduce", deboost) { deboostText = deboost; editDeboost = true }
+        }
+    }
+
+    if (editUpper) {
+        BoostNumberDialog("Boost Upper Bound", upperText, 0..100, { upperText = it }, {
+            viewModel.setBoostUpperBound(upperText); editUpper = false
+        }) { editUpper = false }
+    }
+    if (editDeboost) {
+        BoostNumberDialog("Deboost Reduce", deboostText, null, { deboostText = it }, {
+            viewModel.setDeboostReduce(deboostText); editDeboost = false
+        }) { editDeboost = false }
+    }
+}
+
+@Composable
+private fun BoostSwitchRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(title, style = MaterialTheme.typography.bodyLarge)
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun BoostValueRow(title: String, value: String, onClick: () -> Unit) {
+    Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(title)
+            Text(value)
+        }
+    }
+}
+
+@Composable
+private fun BoostNumberDialog(title: String, value: String, range: IntRange?, onValueChange: (String) -> Unit, onApply: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = { input -> if (input.isEmpty() || input.toIntOrNull()?.let { it >= 0 && (range == null || it in range) } == true) onValueChange(input) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+        },
+        confirmButton = { TextButton(onClick = onApply) { Text("Apply") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
@@ -849,6 +921,7 @@ private fun GPUFrequencyControlCard(viewModel: SoCViewModel) {
                     Column { Text("Higher"); Text("${gpuState.maxFreq} MHz", style = MaterialTheme.typography.labelSmall) }
                 }
             }
+            GPUBoostCard(viewModel)
         }
     }
 
@@ -869,6 +942,44 @@ private fun GPUFrequencyControlCard(viewModel: SoCViewModel) {
             onSelect = { viewModel.updateFreq("max", it, "gpu"); openMax = false },
             onDismiss = { openMax = false },
         )
+    }
+}
+
+@Composable
+private fun GPUBoostCard(viewModel: SoCViewModel) {
+    val boost by viewModel.gpuBoostEnabled.collectAsStateWithLifecycle()
+    val boostEnable by viewModel.gpuBoostEnable.collectAsStateWithLifecycle()
+    val ged by viewModel.gedBoostEnabled.collectAsStateWithLifecycle()
+    val dvfs by viewModel.gpuDvfsEnabled.collectAsStateWithLifecycle()
+    val effectiveLimit by viewModel.gpuEffectiveLimit.collectAsStateWithLifecycle()
+    val boostFrequency by viewModel.gpuBoostFrequency.collectAsStateWithLifecycle()
+    val gpuState by viewModel.gpuState.collectAsStateWithLifecycle()
+    val gpuUsage by viewModel.gpuUsage.collectAsStateWithLifecycle()
+    Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(14.dp)) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("GPU Boost & DVFS", style = MaterialTheme.typography.titleSmall)
+            BoostSwitchRow("GPU Boost", boost) { viewModel.setGpuBoostEnabled(it) }
+            BoostSwitchRow("GPU Boost Enable", boostEnable) { viewModel.setGpuBoostEnable(it) }
+            BoostSwitchRow("GED Boost", ged) { viewModel.setGedBoostEnabled(it) }
+            BoostSwitchRow("GPU DVFS", dvfs) { viewModel.setGpuDvfsEnabled(it) }
+            HorizontalDivider(Modifier.padding(vertical = 6.dp))
+            GPUInfoRow("Current Frequency", "${gpuState.currentFreq} MHz")
+            GPUInfoRow("GPU Load", "$gpuUsage%")
+            GPUInfoRow("Effective Limit", effectiveLimit)
+            GPUInfoRow("Boost Frequency", boostFrequency)
+        }
+    }
+}
+
+@Composable
+private fun GPUInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
     }
 }
 
