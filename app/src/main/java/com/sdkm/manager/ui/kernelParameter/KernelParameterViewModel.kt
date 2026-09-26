@@ -240,8 +240,8 @@ class KernelParameterViewModel(application: Application) : AndroidViewModel(appl
         }
     }
 
-    fun setValue(filePath: String, value: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+    fun setValue(filePath: String, value: String): Job {
+        return viewModelScope.launch(Dispatchers.IO) {
             Utils.writeFile(filePath, value)
             when (filePath) {
                 KernelUtils.PRINTK -> _kernelParameters.value = _kernelParameters.value.copy(printk = Utils.readFile(KernelUtils.PRINTK))

@@ -139,7 +139,7 @@ fun SimpleTopAppBar(title: String = "SDKM", subtitle: String? = null) {
 val LocalStandaloneDrawer = staticCompositionLocalOf<() -> Unit> { { } }
 
 @Composable
-fun SDKMStandaloneDrawerHost(content: @Composable () -> Unit) {
+fun SDKMStandaloneDrawerHost(selectedItem: String? = null, content: @Composable () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val drawerState = androidx.compose.material3.rememberDrawerState(androidx.compose.material3.DrawerValue.Closed)
@@ -182,12 +182,11 @@ fun SDKMStandaloneDrawerHost(content: @Composable () -> Unit) {
                 StandaloneDrawerItem("Home", Icons.Rounded.Home) { scope.launch { drawerState.close(); openMain(HomeRoute) } }
                 StandaloneDrawerItem("CPU", Icons.Rounded.Memory) { scope.launch { drawerState.close(); openMain(CpuRoute) } }
                 StandaloneDrawerItem("GPU", Icons.Rounded.DeveloperBoard) { scope.launch { drawerState.close(); openMain(GpuRoute) } }
-                StandaloneDrawerItem("Monitor", Icons.Rounded.MonitorHeart) {
+                StandaloneDrawerItem("Monitor", Icons.Rounded.MonitorHeart, selected = selectedItem == "Monitor") {
                     scope.launch { drawerState.close() }
-                    if (Settings.canDrawOverlays(context)) {
-                        ContextCompat.startForegroundService(context, Intent(context, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_START))
-                    } else {
-                        context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")))
+                    if (selectedItem != "Monitor") {
+                        context.startActivity(Intent(context, MonitorActivity::class.java))
+                        (context as? android.app.Activity)?.finish()
                     }
                 }
                 StandaloneDrawerItem("Task Killer", Icons.Rounded.DeleteSweep) {
@@ -249,15 +248,15 @@ fun SDKMStandaloneDrawerHost(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun StandaloneDrawerItem(title: String, icon: ImageVector, onClick: () -> Unit) {
+private fun StandaloneDrawerItem(title: String, icon: ImageVector, selected: Boolean = false, onClick: () -> Unit) {
     Surface(
         modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp).fillMaxWidth().clip(RoundedCornerShape(9.dp)).clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surface,
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
     ) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
-            androidx.compose.material3.Icon(icon, null, Modifier.size(21.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            androidx.compose.material3.Icon(icon, null, Modifier.size(21.dp), tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(16.dp))
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
         }
     }
 }

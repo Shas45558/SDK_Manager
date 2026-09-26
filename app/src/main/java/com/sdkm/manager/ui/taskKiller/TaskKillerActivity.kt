@@ -23,6 +23,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -137,7 +138,7 @@ private fun TaskKillerScreen(onBack: () -> Unit) {
     LaunchedEffect(Unit) { refresh() }
     LaunchedEffect(Unit) {
         while (true) {
-            delay(2000)
+            delay(1500)
             refresh()
         }
     }
@@ -306,34 +307,33 @@ private object TaskKillerUtils {
     fun getRunningProcesses(context: Context, previous: List<RunningProcess>): List<RunningProcess> {
         val packageManager = context.packageManager
         val installed = packageManager.getInstalledApplications(0)
+        val appByPackage = installed.associateBy { it.packageName }
+        val packageOutput = Shell.cmd("cmd package list packages -U; pm list packages -d").exec()
         val uidToPackage = HashMap<Int, String>()
-        val packageOutput = Shell.cmd("cmd package list packages -U").exec()
+        val frozenPackages = HashSet<String>()
         if (packageOutput.isSuccess) {
             packageOutput.out.forEach { line ->
-                val match = Regex("""package:([^\s]+)\s+uid:(\d+)""").find(line)
-                if (match != null) uidToPackage.putIfAbsent(match.groupValues[2].toIntOrNull() ?: return@forEach, match.groupValues[1])
+                val m = Regex("""package:([^\s]+)\s+uid:(\d+)""").find(line)
+                if (m != null) uidToPackage.putIfAbsent(m.groupValues[2].toIntOrNull() ?: return@forEach, m.groupValues[1])
+                if (line.startsWith("package:") && !line.contains(" uid:")) frozenPackages += line.removePrefix("package:").trim()
             }
         }
-        val appByPackage = installed.associateBy { it.packageName }
         val output = Shell.cmd("ps -A -o PID,UID,RSS,PCPU,NAME").exec()
         if (!output.isSuccess) return emptyList()
-        val result = output.out.drop(1).mapNotNull { line ->
+        return output.out.asSequence().drop(1).mapNotNull { line ->
             val m = Regex("""^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(.+?)\s*$""").find(line) ?: return@mapNotNull null
             val pid = m.groupValues[1].toIntOrNull() ?: return@mapNotNull null
             val uid = m.groupValues[2].toIntOrNull() ?: return@mapNotNull null
-            val rss = m.groupValues[3].toLongOrNull() ?: 0L
-            val pCpu = m.groupValues[4].replace("%", "").toFloatOrNull() ?: 0f
-            val name = m.groupValues[5].trim()
-            if (pid <= 1 || name.isBlank()) return@mapNotNull null
+            if (pid <= 1) return@mapNotNull null
             val pkg = uidToPackage[uid] ?: return@mapNotNull null
             if (pkg == context.packageName) return@mapNotNull null
             val app = appByPackage[pkg] ?: return@mapNotNull null
+            val rss = m.groupValues[3].toLongOrNull() ?: 0L
+            val cpu = m.groupValues[4].replace("%", "").toFloatOrNull()?.coerceIn(0f,100f) ?: 0f
+            val name = m.groupValues[5].trim()
             val system = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-            val frozen = isFrozen(pkg)
-            val cpu = pCpu.coerceIn(0f, 100f)
-            RunningProcess(pid, uid, name, pkg, app.loadLabel(packageManager).toString(), rss, cpu, true, system, frozen)
-        }.groupBy { "${it.packageName}:${it.pid}" }.map { it.value.first() }
-        return result.sortedWith(compareByDescending<RunningProcess> { it.cpuPercent }.thenByDescending { it.rssKb })
+            RunningProcess(pid, uid, name, pkg, app.loadLabel(packageManager).toString(), rss, cpu, true, system, pkg in frozenPackages)
+        }.sortedWith(compareByDescending<RunningProcess> { it.cpuPercent }.thenByDescending { it.rssKb }).toList()
     }
 
     fun forceStop(packageName: String) {

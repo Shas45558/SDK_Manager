@@ -277,8 +277,17 @@ private object LogsUtils {
     }
 
     fun kernelLog(): List<String> {
-        val r = Shell.cmd("dmesg --color=never").exec()
-        return if (r.isSuccess) r.out else r.err.ifEmpty { listOf("Unable to read dmesg") }
+        val commands = listOf(
+            "dmesg --color=never",
+            "cat /dev/kmsg 2>/dev/null | tail -n 1200",
+            "cat /proc/kmsg 2>/dev/null | tail -n 1200",
+        )
+        for (command in commands) {
+            val r = Shell.cmd(command).exec()
+            if (r.isSuccess && r.out.isNotEmpty()) return r.out
+        }
+        val detail = Shell.cmd("dmesg --color=never").exec().err.joinToString(" ").trim()
+        return listOf(if (detail.isBlank()) "Kernel log is not exposed to root on this kernel." else "Kernel log read failed: $detail")
     }
 
     fun logcat(): List<String> {

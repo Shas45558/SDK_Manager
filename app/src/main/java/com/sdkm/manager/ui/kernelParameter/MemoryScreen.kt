@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,6 +42,7 @@ fun MemoryScreen(
     navController: NavController,
 ) {
     val memory by viewModel.memory.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
     var swappiness by remember { mutableFloatStateOf(0f) }
     var extraFreeKbytes by remember { mutableFloatStateOf(0f) }
     var pageCluster by remember { mutableStateOf("0") }
@@ -79,7 +81,7 @@ fun MemoryScreen(
                     onValueChange = { swappiness = it },
                     onApply = {
                         val value = swappiness.toInt()
-                        viewModel.setValue(KernelUtils.SWAPPINESS, value.toString())
+                        scope.launch { viewModel.setValue(KernelUtils.SWAPPINESS, value.toString()).join() }
                     },
                 )
             }

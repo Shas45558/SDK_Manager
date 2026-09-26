@@ -1,5 +1,6 @@
 package com.sdkm.manager.ui.monitor
 
+import android.Manifest
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
@@ -8,6 +9,7 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Visibility
@@ -44,6 +46,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.sdkm.manager.ui.theme.SDKMTheme
+import com.sdkm.manager.ui.components.SDKMStandaloneDrawerHost
+import com.sdkm.manager.ui.components.SDKMStandaloneHamburgerMenu
 import com.sdkm.manager.utils.KernelUtils
 import com.sdkm.manager.utils.SoCUtils
 import com.sdkm.manager.utils.Utils
@@ -51,9 +55,25 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 
 class MonitorActivity : ComponentActivity() {
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) startNotificationService()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { SDKMTheme { MonitorScreen(onBack = { finish() }) } }
+        setContent { SDKMTheme { MonitorScreen(onNotificationRequest = { requestNotificationPermission() }) } }
+    }
+
+    private fun requestNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            startNotificationService()
+        }
+    }
+
+    private fun startNotificationService() {
+        ContextCompat.startForegroundService(this, Intent(this, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_START_NOTIFICATION))
     }
 }
 
@@ -65,7 +85,7 @@ private data class LiveStats(
 )
 
 @androidx.compose.runtime.Composable
-private fun MonitorScreen(onBack: () -> Unit) {
+private fun MonitorScreen(onNotificationRequest: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var refreshMs by remember { mutableStateOf(1000L) }
     var stats by remember { mutableStateOf(readLiveStats(context)) }
@@ -83,12 +103,16 @@ private fun MonitorScreen(onBack: () -> Unit) {
         }
     }
 
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, "Back") }
-            Text("Monitor", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-        }
-        LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    SDKMStandaloneDrawerHost(selectedItem = "Monitor") {
+        androidx.compose.material3.Scaffold(
+            topBar = {
+                androidx.compose.material3.TopAppBar(
+                    title = { Text("Monitor") },
+                    navigationIcon = { SDKMStandaloneHamburgerMenu() },
+                )
+            },
+        ) { padding ->
+        LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item { MonitorCard("CPU", "${stats.cpu}% • ${stats.cpuFreq} MHz", cpuHistory.value) }
             item { MonitorCard("GPU", "${stats.gpu}% • ${stats.gpuFreq} MHz", gpuHistory.value) }
             item { MonitorCard("RAM", "${stats.ram}% used", ramHistory.value) }
@@ -143,6 +167,7 @@ private fun MonitorScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
     }
 }
 

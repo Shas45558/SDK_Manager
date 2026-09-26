@@ -40,23 +40,11 @@ class KernelTuningViewModel : ViewModel() {
                 "/proc/sys/vm/dirty_background_ratio" to "dirty_background_ratio",
                 "/proc/sys/vm/watermark_scale_factor" to "watermark_scale_factor",
             ), { it }),
-            entropy = params(listOf(
-                "/proc/sys/kernel/random/read_wakeup_threshold" to "read_wakeup_threshold",
-                "/proc/sys/kernel/random/write_wakeup_threshold" to "write_wakeup_threshold",
-            ), { it }),
+            entropy = emptyList(),
             network = params(listOf(
                 "/proc/sys/net/ipv4/tcp_congestion_control" to "tcp_congestion_control",
-                "/proc/sys/net/core/rmem_max" to "rmem_max",
-                "/proc/sys/net/core/wmem_max" to "wmem_max",
-                "/proc/sys/net/ipv4/tcp_rmem" to "tcp_rmem",
-                "/proc/sys/net/ipv4/tcp_wmem" to "tcp_wmem",
             ), { it }),
-            filesystem = params(listOf(
-                "/proc/sys/fs/file-max" to "file-max",
-                "/proc/sys/fs/inotify/max_user_watches" to "inotify max_user_watches",
-                "/proc/sys/fs/inotify/max_user_instances" to "inotify max_user_instances",
-                "/proc/sys/fs/pipe-max-size" to "pipe-max-size",
-            ), { it }),
+            filesystem = emptyList(),
         )
     }
 

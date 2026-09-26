@@ -57,30 +57,14 @@ fun KernelTuningScreen(
                     )
                 }
             } }
-            item { TuningSection("Entropy", "Randomness-pool controls, only when the kernel exposes them.") {
-                state.entropy.forEach { p ->
-                    NumericCard(p.label, p.value, viewModel.input[p.path] ?: p.value,
-                        onValue = { viewModel.input[p.path] = it },
-                        onApply = { viewModel.write(p.path, viewModel.input[p.path] ?: p.value) },
+            item { TuningSection("TCP / network", "TCP congestion control exposed by the kernel.") {
+                state.network.firstOrNull()?.let { param ->
+                    NumericCard(param.label, param.value, viewModel.input[param.path] ?: param.value,
+                        onValue = { viewModel.input[param.path] = it },
+                        onApply = { viewModel.write(param.path, viewModel.input[param.path] ?: param.value) },
                     )
                 }
-                if (state.entropy.isEmpty()) Text("No writable entropy controls exposed by this kernel.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } }
-            item { TuningSection("TCP / network", "Network stack parameters exposed under /proc/sys/net.") {
-                state.network.forEach { p ->
-                    NumericCard(p.label, p.value, viewModel.input[p.path] ?: p.value,
-                        onValue = { viewModel.input[p.path] = it },
-                        onApply = { viewModel.write(p.path, viewModel.input[p.path] ?: p.value) },
-                    )
-                }
-            } }
-            item { TuningSection("Filesystem", "Kernel filesystem limits and cache controls.") {
-                state.filesystem.forEach { p ->
-                    NumericCard(p.label, p.value, viewModel.input[p.path] ?: p.value,
-                        onValue = { viewModel.input[p.path] = it },
-                        onApply = { viewModel.write(p.path, viewModel.input[p.path] ?: p.value) },
-                    )
-                }
+                if (state.network.isEmpty()) Text("No writable TCP control exposed by this kernel.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             } }
         }
     }
