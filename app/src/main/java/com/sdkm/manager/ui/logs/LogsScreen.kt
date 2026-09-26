@@ -111,30 +111,32 @@ fun LogsScreen() {
 
     Scaffold(
             topBar = {
-                SimpleTopAppBar(
-                    title = "Logs",
-                    actions = {
-                        IconButton(onClick = { refresh() }) { Icon(Icons.Filled.Refresh, "Refresh") }
-                        IconButton(onClick = { paused = !paused }) {
-                            Icon(if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, if (paused) "Resume" else "Pause")
-                        }
-                        IconButton(onClick = { lines = emptyList() }) { Icon(Icons.Filled.ClearAll, "Clear view") }
-                        IconButton(onClick = {
-                            val text = lines.joinToString("\n")
-                            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, text)
-                                putExtra(Intent.EXTRA_TITLE, "SDKM Logs")
-                            }, "Export logs"))
-                        }) { Icon(Icons.Filled.FileDownload, "Export") }
-                    },
-                )
+                SimpleTopAppBar(title = "Logs")
             },
         ) { padding ->
             Column(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Button(onClick = { refresh() }) { Icon(Icons.Filled.Refresh, contentDescription = "Refresh"); Text("Refresh") }
+                    Button(onClick = { paused = !paused }) {
+                        Icon(if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, contentDescription = if (paused) "Resume" else "Pause")
+                        Text(if (paused) "Resume" else "Pause")
+                    }
+                    Button(onClick = { lines = emptyList() }) { Icon(Icons.Filled.ClearAll, contentDescription = "Clear view"); Text("Clear") }
+                    Button(onClick = {
+                        val text = lines.joinToString("\n")
+                        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, text)
+                            putExtra(Intent.EXTRA_TITLE, "SDKM Logs")
+                        }, "Export logs"))
+                    }) { Icon(Icons.Filled.FileDownload, contentDescription = "Export"); Text("Export") }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     Button(onClick = { menuOpen = true }) { Text(source.label) }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {

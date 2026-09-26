@@ -34,7 +34,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
@@ -43,7 +42,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.DropdownMenu
@@ -160,11 +158,7 @@ private fun TaskKillerScreen(onBack: () -> Unit) {
     SDKMStandaloneDrawerHost(selectedItem = "Task Killer") {
         Scaffold(
             topBar = {
-                SimpleTopAppBar(title = "Task Killer", actions = {
-                    IconButton(onClick = { refresh() }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
-                    }
-                })
+SimpleTopAppBar(title = "Task Killer")
             },
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) { padding ->

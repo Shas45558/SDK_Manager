@@ -150,22 +150,21 @@ fun SimpleTopAppBar(
                     subtitle?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
             },
-            navigationIcon = {
-                Row {
-                    IconButton(onClick = { showReboot = true }) {
-                        Icon(Icons.Rounded.RestartAlt, contentDescription = "Reboot")
-                    }
-                    IconButton(onClick = {
-                        context.startActivity(Intent(context, SettingsActivity::class.java))
-                    }) {
-                        Icon(Icons.Rounded.Settings, contentDescription = "Settings")
-                    }
-                    IconButton(onClick = { showAbout = true }) {
-                        Icon(Icons.Rounded.Info, contentDescription = "About")
-                    }
+            navigationIcon = {},
+            actions = {
+                IconButton(onClick = { showReboot = true }) {
+                    Icon(Icons.Rounded.RestartAlt, contentDescription = "Reboot")
                 }
+                IconButton(onClick = {
+                    context.startActivity(Intent(context, SettingsActivity::class.java))
+                }) {
+                    Icon(Icons.Rounded.Settings, contentDescription = "Settings")
+                }
+                IconButton(onClick = { showAbout = true }) {
+                    Icon(Icons.Rounded.Info, contentDescription = "About")
+                }
+                actions()
             },
-            actions = actions,
         )
         ScrollableTabRow(
             selectedTabIndex = tabs.indexOfFirst { it.second == selectedRoute }.coerceAtLeast(0),
