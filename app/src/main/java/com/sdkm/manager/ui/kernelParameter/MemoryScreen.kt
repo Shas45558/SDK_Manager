@@ -45,18 +45,18 @@ fun MemoryScreen(
     val scope = rememberCoroutineScope()
     var swappiness by remember { mutableFloatStateOf(0f) }
     var extraFreeKbytes by remember { mutableFloatStateOf(0f) }
-    var pageCluster by remember { mutableStateOf("0") }
-    var vfsCachePressure by remember { mutableStateOf("200") }
-    var dirtyRatio by remember { mutableStateOf("10") }
-    var dirtyBackgroundRatio by remember { mutableStateOf("5") }
+    var pageCluster by remember { mutableFloatStateOf(0f) }
+    var vfsCachePressure by remember { mutableFloatStateOf(200f) }
+    var dirtyRatio by remember { mutableFloatStateOf(10f) }
+    var dirtyBackgroundRatio by remember { mutableFloatStateOf(5f) }
 
     LaunchedEffect(memory.swappiness, memory.extraFreeKbytes, memory.pageCluster, memory.vfsCachePressure, memory.dirtyRatio, memory.dirtyBackgroundRatio) {
         swappiness = memory.swappiness.toFloatOrNull()?.coerceIn(0f, 200f) ?: 0f
         extraFreeKbytes = memory.extraFreeKbytes.toFloatOrNull()?.coerceIn(0f, 131072f) ?: 0f
-        if (memory.pageCluster.isNotBlank() && memory.pageCluster != "N/A") pageCluster = memory.pageCluster
-        if (memory.vfsCachePressure.isNotBlank() && memory.vfsCachePressure != "N/A") vfsCachePressure = memory.vfsCachePressure
-        if (memory.dirtyRatio.isNotBlank() && memory.dirtyRatio != "N/A") dirtyRatio = memory.dirtyRatio
-        if (memory.dirtyBackgroundRatio.isNotBlank() && memory.dirtyBackgroundRatio != "N/A") dirtyBackgroundRatio = memory.dirtyBackgroundRatio
+        memory.pageCluster.toFloatOrNull()?.let { pageCluster = it.coerceIn(0f, 8f) }
+        memory.vfsCachePressure.toFloatOrNull()?.let { vfsCachePressure = it.coerceIn(0f, 500f) }
+        memory.dirtyRatio.toFloatOrNull()?.let { dirtyRatio = it.coerceIn(0f, 100f) }
+        memory.dirtyBackgroundRatio.toFloatOrNull()?.let { dirtyBackgroundRatio = it.coerceIn(0f, 100f) }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -93,24 +93,48 @@ fun MemoryScreen(
                 )
             }
             item {
-                KernelInputCard("page-cluster", pageCluster, "0", { pageCluster = it }) {
-                    viewModel.setValue(KernelUtils.PAGE_CLUSTER, pageCluster)
-                }
+                KernelSliderCard(
+                    title = "page-cluster",
+                    valueText = pageCluster.toInt().toString(),
+                    value = pageCluster,
+                    range = 0f..8f,
+                    steps = 7,
+                    onValueChange = { pageCluster = it },
+                    onApply = { viewModel.setValue(KernelUtils.PAGE_CLUSTER, pageCluster.toInt().toString()) },
+                )
             }
             item {
-                KernelInputCard("vfs_cache_pressure", vfsCachePressure, "200", { vfsCachePressure = it }) {
-                    viewModel.setValue(KernelUtils.VFS_CACHE_PRESSURE, vfsCachePressure)
-                }
+                KernelSliderCard(
+                    title = "vfs_cache_pressure",
+                    valueText = vfsCachePressure.toInt().toString(),
+                    value = vfsCachePressure,
+                    range = 0f..500f,
+                    steps = 49,
+                    onValueChange = { vfsCachePressure = it },
+                    onApply = { viewModel.setValue(KernelUtils.VFS_CACHE_PRESSURE, vfsCachePressure.toInt().toString()) },
+                )
             }
             item {
-                KernelInputCard("dirty_ratio", dirtyRatio, "10", { dirtyRatio = it }) {
-                    viewModel.setValue(KernelUtils.DIRTY_RATIO, dirtyRatio)
-                }
+                KernelSliderCard(
+                    title = "dirty_ratio",
+                    valueText = dirtyRatio.toInt().toString(),
+                    value = dirtyRatio,
+                    range = 0f..100f,
+                    steps = 99,
+                    onValueChange = { dirtyRatio = it },
+                    onApply = { viewModel.setValue(KernelUtils.DIRTY_RATIO, dirtyRatio.toInt().toString()) },
+                )
             }
             item {
-                KernelInputCard("dirty_background_ratio", dirtyBackgroundRatio, "5", { dirtyBackgroundRatio = it }) {
-                    viewModel.setValue(KernelUtils.DIRTY_BACKGROUND_RATIO, dirtyBackgroundRatio)
-                }
+                KernelSliderCard(
+                    title = "dirty_background_ratio",
+                    valueText = dirtyBackgroundRatio.toInt().toString(),
+                    value = dirtyBackgroundRatio,
+                    range = 0f..100f,
+                    steps = 99,
+                    onValueChange = { dirtyBackgroundRatio = it },
+                    onApply = { viewModel.setValue(KernelUtils.DIRTY_BACKGROUND_RATIO, dirtyBackgroundRatio.toInt().toString()) },
+                )
             }
         }
     }
@@ -184,6 +208,7 @@ private fun KernelSliderCard(
     valueText: String,
     value: Float,
     range: ClosedFloatingPointRange<Float>,
+    steps: Int = 0,
     onValueChange: (Float) -> Unit,
     onApply: () -> Unit,
 ) {
@@ -193,38 +218,8 @@ private fun KernelSliderCard(
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(valueText, color = MaterialTheme.colorScheme.primary)
             }
-            Slider(value = value, onValueChange = onValueChange, valueRange = range)
+            Slider(value = value, onValueChange = onValueChange, valueRange = range, steps = steps)
             Button(onClick = onApply, modifier = Modifier.fillMaxWidth()) { Text("Apply") }
-        }
-    }
-}
-
-@Composable
-private fun KernelInputCard(
-    title: String,
-    value: String,
-    defaultValue: String,
-    onValueChange: (String) -> Unit,
-    onApply: () -> Unit = {},
-) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text("Default $defaultValue", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            OutlinedTextField(
-                value = value,
-                onValueChange = { onValueChange(it.filter(Char::isDigit)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
-            Button(
-                onClick = onApply,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Apply")
-            }
         }
     }
 }
