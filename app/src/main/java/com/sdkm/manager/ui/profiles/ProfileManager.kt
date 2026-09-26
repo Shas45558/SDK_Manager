@@ -123,9 +123,11 @@ object ProfileManager {
     }
 
     private fun dynamicCpuPaths(): List<String> {
-        return Shell.cmd("for p in /sys/devices/system/cpu/cpufreq/policy*; do for f in scaling_min_freq scaling_max_freq scaling_governor; do [ -e \"${'$'}p/${'$'}f\" ] && echo \"${'$'}p/${'$'}f\"; done; done").exec().out.orEmpty()
+        return Shell.cmd(
+            "for p in /sys/devices/system/cpu/cpufreq/policy*; do for f in scaling_min_freq scaling_max_freq scaling_governor; do [ -e \"${'$'}p/${'$'}f\" ] && echo \"${'$'}p/${'$'}f\"; done; done; " +
+                "for c in /sys/devices/system/cpu/cpu[0-9]*; do [ -e \"${'$'}c/online\" ] && echo \"${'$'}c/online\"; done"
+        ).exec().out.orEmpty()
     }
-
     private fun dynamicBlockPaths(): List<String> {
         return Shell.cmd("for d in /sys/block/*; do [ -e \"${'$'}d/queue/scheduler\" ] && echo \"${'$'}d/queue/scheduler\"; [ -e \"${'$'}d/queue/read_ahead_kb\" ] && echo \"${'$'}d/queue/read_ahead_kb\"; done").exec().out.orEmpty()
     }

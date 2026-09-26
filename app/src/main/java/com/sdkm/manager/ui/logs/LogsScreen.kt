@@ -9,6 +9,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -122,27 +123,48 @@ fun LogsScreen() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Button(onClick = { refresh() }) { Icon(Icons.Filled.Refresh, contentDescription = "Refresh"); Text("Refresh") }
+                    Button(onClick = { refresh() }, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                        Text("Refresh")
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        Button(onClick = { menuOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Log")
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            LogSource.values().forEach { item ->
+                                DropdownMenuItem(text = { Text(item.label) }, onClick = { source = item; menuOpen = false })
+                            }
+                        }
+                    }
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Button(onClick = { lines = emptyList() }, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Filled.ClearAll, contentDescription = "Clear view")
+                        Text("Clear")
+                    }
+                    Button(
+                        onClick = {
+                            val text = lines.joinToString("\n")
+                            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, text)
+                                putExtra(Intent.EXTRA_TITLE, "SDKM Logs")
+                            }, "Export logs"))
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(Icons.Filled.FileDownload, contentDescription = "Export")
+                        Text("Export")
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     Button(onClick = { paused = !paused }) {
                         Icon(if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, contentDescription = if (paused) "Resume" else "Pause")
                         Text(if (paused) "Resume" else "Pause")
-                    }
-                    Button(onClick = { lines = emptyList() }) { Icon(Icons.Filled.ClearAll, contentDescription = "Clear view"); Text("Clear") }
-                    Button(onClick = {
-                        val text = lines.joinToString("\n")
-                        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, text)
-                            putExtra(Intent.EXTRA_TITLE, "SDKM Logs")
-                        }, "Export logs"))
-                    }) { Icon(Icons.Filled.FileDownload, contentDescription = "Export"); Text("Export") }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(onClick = { menuOpen = true }) { Text(source.label) }
-                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        LogSource.values().forEach { item ->
-                            DropdownMenuItem(text = { Text(item.label) }, onClick = { source = item; menuOpen = false })
-                        }
                     }
                     Button(onClick = { clearDialog = true }) { Text("Clear buffers") }
                 }

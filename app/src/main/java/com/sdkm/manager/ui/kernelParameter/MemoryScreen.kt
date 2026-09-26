@@ -14,12 +14,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
@@ -165,29 +162,17 @@ private fun SwappinessCard(
     onValueChange: (Float) -> Unit,
     onApply: () -> Unit,
 ) {
-    var textValue by remember { mutableStateOf(value.toInt().toString()) }
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Swappiness", style = MaterialTheme.typography.titleMedium)
                 Text(value.toInt().toString(), color = MaterialTheme.colorScheme.primary)
             }
-            OutlinedTextField(
-                value = textValue,
-                onValueChange = {
-                    val filtered = it.filter(Char::isDigit)
-                    textValue = filtered
-                    filtered.toIntOrNull()?.coerceIn(0, 200)?.let { parsed -> onValueChange(parsed.toFloat()) }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text("Value (0–200)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            Slider(
+                value = value,
+                onValueChange = onValueChange,
+                valueRange = 0f..200f,
             )
-            Slider(value = value, onValueChange = {
-                onValueChange(it)
-                textValue = it.toInt().toString()
-            }, valueRange = 0f..200f)
             Button(onClick = onApply, modifier = Modifier.fillMaxWidth()) { Text("Apply") }
         }
     }
