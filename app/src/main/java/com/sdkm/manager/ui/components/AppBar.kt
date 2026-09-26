@@ -32,6 +32,8 @@
 package com.sdkm.manager.ui.components
 
 import android.content.Intent
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -211,35 +213,129 @@ fun SDKMStandaloneDrawerHost(content: @Composable () -> Unit) {
         }
     }
 
-    if (showReboot) {
-        AlertDialog(
-            onDismissRequest = { showReboot = false },
-            title = { Text("Reboot") },
-            text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(Modifier.fillMaxWidth(), onClick = { showReboot = false; Utils.reboot("") }) { Text("Normal") }
-                Button(Modifier.fillMaxWidth(), onClick = { showReboot = false; Utils.reboot("recovery") }) { Text("Recovery") }
-                Button(Modifier.fillMaxWidth(), onClick = { showReboot = false; Utils.reboot("bootloader") }) { Text("Bootloader") }
-            } },
-            confirmButton = { TextButton(onClick = { showReboot = false }) { Text("Cancel") } },
-        )
-    }
-    if (showAbout) {
-        AlertDialog(
-            onDismissRequest = { showAbout = false },
-            title = { Text("About") },
-            text = { Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("SDKM About", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+if (showReboot) {
+    AlertDialog(
+        onDismissRequest = { showReboot = false },
+        title = { Text("Reboot") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        showReboot = false
+                        Utils.reboot("")
+                    }
+                ) {
+                    Text("Normal")
+                }
+
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        showReboot = false
+                        Utils.reboot("recovery")
+                    }
+                ) {
+                    Text("Recovery")
+                }
+
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        showReboot = false
+                        Utils.reboot("bootloader")
+                    }
+                ) {
+                    Text("Bootloader")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { showReboot = false }
+            ) {
+                Text("Cancel")
+            }
+        },
+    )
+}
+
+if (showAbout) {
+    AlertDialog(
+        onDismissRequest = { showAbout = false },
+        title = { Text("About") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "SDKM About",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
                 Text("Version: $appVersion")
-                Button(Modifier.fillMaxWidth(), onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Shas45558/SDK_Manager"))) } }) { Text("Source") }
-                Button(Modifier.fillMaxWidth(), onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/ocmt6768"))) } }) { Text("Telegram") }
-                Text("System About", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://github.com/Shas45558/SDK_Manager")
+                                )
+                            )
+                        }
+                    }
+                ) {
+                    Text("Source")
+                }
+
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://t.me/ocmt6768")
+                                )
+                            )
+                        }
+                    }
+                ) {
+                    Text("Telegram")
+                }
+
+                Text(
+                    "System About",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
                 Text("Device: ${deviceInfo.manufacturer} ${deviceInfo.deviceName}")
                 Text("Android: ${deviceInfo.androidVersion}")
-                Text("Kernel: ${deviceInfo.fullKernelVersion.ifBlank { deviceInfo.kernelVersion }}")
-            } },
-            confirmButton = { TextButton(onClick = { showAbout = false }) { Text("OK") } },
-        )
-    }
+                Text(
+                    "Kernel: ${
+                        deviceInfo.fullKernelVersion.ifBlank {
+                            deviceInfo.kernelVersion
+                        }
+                    }"
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { showAbout = false }
+            ) {
+                Text("OK")
+            }
+        },
+    )
 }
 
 @Composable
