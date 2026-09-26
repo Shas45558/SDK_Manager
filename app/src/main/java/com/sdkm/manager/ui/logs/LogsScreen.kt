@@ -46,8 +46,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.sdkm.manager.ui.components.SDKMStandaloneDrawerHost
-import com.sdkm.manager.ui.components.SDKMStandaloneHamburgerMenu
+import com.sdkm.manager.ui.components.SimpleTopAppBar
 import com.sdkm.manager.ui.theme.SDKMTheme
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
@@ -110,12 +109,10 @@ fun LogsScreen() {
         }
     }
 
-    SDKMStandaloneDrawerHost {
-        Scaffold(
+    Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text("Logs") },
-                    navigationIcon = { SDKMStandaloneHamburgerMenu() },
+                SimpleTopAppBar(
+                    title = "Logs",
                     actions = {
                         IconButton(onClick = { refresh() }) { Icon(Icons.Filled.Refresh, "Refresh") }
                         IconButton(onClick = { paused = !paused }) {

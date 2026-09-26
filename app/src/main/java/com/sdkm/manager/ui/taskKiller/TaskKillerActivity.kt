@@ -53,7 +53,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import com.sdkm.manager.ui.components.SDKMStandaloneHamburgerMenu
+import com.sdkm.manager.ui.components.SimpleTopAppBar
 import com.sdkm.manager.ui.components.SDKMStandaloneDrawerHost
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -160,15 +160,11 @@ private fun TaskKillerScreen(onBack: () -> Unit) {
     SDKMStandaloneDrawerHost(selectedItem = "Task Killer") {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text("Task Killer") },
-                    navigationIcon = { SDKMStandaloneHamburgerMenu() },
-                    actions = {
-                        IconButton(onClick = { refresh() }) {
-                            Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
-                        }
-                    },
-                )
+                SimpleTopAppBar(title = "Task Killer", actions = {
+                    IconButton(onClick = { refresh() }) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                    }
+                })
             },
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) { padding ->

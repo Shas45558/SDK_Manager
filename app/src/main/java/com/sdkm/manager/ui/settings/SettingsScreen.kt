@@ -83,7 +83,6 @@ import com.composables.icons.materialsymbols.roundedfilled.R.drawable.materialsy
 import com.sdkm.manager.R
 import com.sdkm.manager.ui.components.ListItem
 import com.sdkm.manager.ui.components.SDKMStandaloneDrawerHost
-import com.sdkm.manager.ui.components.SDKMStandaloneHamburgerMenu
 import com.sdkm.manager.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -105,10 +104,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
         Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            androidx.compose.material3.TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
-                navigationIcon = { SDKMStandaloneHamburgerMenu() },
-            )
+            com.sdkm.manager.ui.components.SimpleTopAppBar(title = "Settings")
         },
     ) { innerPadding ->
         Column(

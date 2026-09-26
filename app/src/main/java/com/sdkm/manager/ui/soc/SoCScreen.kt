@@ -143,7 +143,6 @@ import com.sdkm.manager.ui.components.Card.ExpandableCard
 import com.sdkm.manager.ui.components.Card.ItemCard
 import com.sdkm.manager.ui.components.Card.SwitchOutlinedCard
 import com.sdkm.manager.ui.components.SimpleTopAppBar
-import com.sdkm.manager.ui.navigation.BottomNavigationBar
 import com.sdkm.manager.utils.SoCUtils
 
 sealed interface SocCardType {
@@ -201,11 +200,6 @@ fun SoCScreen(
                 SimpleTopAppBar()
             } else {
                 SimpleTopAppBar(title = if (section == SocSection.CPU) "CPU" else "GPU")
-            }
-        },
-        bottomBar = {
-            if (section == SocSection.ALL) {
-                BottomNavigationBar(navController)
             }
         },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),

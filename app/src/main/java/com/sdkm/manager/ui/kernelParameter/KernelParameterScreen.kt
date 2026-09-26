@@ -135,7 +135,6 @@ import com.sdkm.manager.ui.components.Card.ExpandableCard
 import com.sdkm.manager.ui.components.Card.ItemCard
 import com.sdkm.manager.ui.components.Card.SwitchCard
 import com.sdkm.manager.ui.components.SimpleTopAppBar
-import com.sdkm.manager.ui.navigation.BottomNavigationBar
 import com.sdkm.manager.utils.KernelUtils
 
 @Composable
@@ -189,7 +188,6 @@ fun KernelParameterScreen(viewModel: KernelParameterViewModel = viewModel(), nav
 
     Scaffold(
         topBar = { SimpleTopAppBar() },
-        bottomBar = { BottomNavigationBar(navController) },
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
     ) { innerPadding ->
         Box(
