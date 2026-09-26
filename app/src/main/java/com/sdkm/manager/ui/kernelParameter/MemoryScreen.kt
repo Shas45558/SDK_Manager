@@ -18,6 +18,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
@@ -74,14 +76,11 @@ fun MemoryScreen(
                 ZramInfoCard(memory)
             }
             item {
-                KernelSliderCard(
-                    title = "Swappiness",
-                    valueText = swappiness.toInt().toString(),
+                SwappinessCard(
                     value = swappiness,
-                    range = 0f..200f,
                     onValueChange = { swappiness = it },
                     onApply = {
-                        val value = swappiness.toInt()
+                        val value = swappiness.toInt().coerceIn(0, 200)
                         scope.launch { viewModel.setValue(KernelUtils.SWAPPINESS, value.toString()).join() }
                     },
                 )
@@ -157,6 +156,41 @@ private fun formatMemoryBytes(bytes: Long): String {
     if (bytes <= 0L) return "0 MB"
     val mib = bytes / (1024.0 * 1024.0)
     return if (mib >= 1024.0) "%.1f GB".format(java.util.Locale.US, mib / 1024.0).replace(".0 GB", " GB") else "%.0f MB".format(java.util.Locale.US, mib)
+}
+
+
+@Composable
+private fun SwappinessCard(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    onApply: () -> Unit,
+) {
+    var textValue by remember { mutableStateOf(value.toInt().toString()) }
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Swappiness", style = MaterialTheme.typography.titleMedium)
+                Text(value.toInt().toString(), color = MaterialTheme.colorScheme.primary)
+            }
+            OutlinedTextField(
+                value = textValue,
+                onValueChange = {
+                    val filtered = it.filter(Char::isDigit)
+                    textValue = filtered
+                    filtered.toIntOrNull()?.coerceIn(0, 200)?.let { parsed -> onValueChange(parsed.toFloat()) }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Value (0–200)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            Slider(value = value, onValueChange = {
+                onValueChange(it)
+                textValue = it.toInt().toString()
+            }, valueRange = 0f..200f)
+            Button(onClick = onApply, modifier = Modifier.fillMaxWidth()) { Text("Apply") }
+        }
+    }
 }
 
 @Composable

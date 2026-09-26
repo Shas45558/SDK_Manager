@@ -20,14 +20,7 @@ object ProfileManager {
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
     private val staticPaths = listOf(
-        "/proc/sys/kernel/sched_autogroup_enabled",
-        "/proc/sys/kernel/sched_lib_name",
-        "/proc/sys/kernel/sched_util_clamp_max",
-        "/proc/sys/kernel/sched_util_clamp_min",
-        "/proc/sys/kernel/sched_util_clamp_min_rt_default",
-        "/proc/sys/kernel/random/read_wakeup_threshold",
-        "/proc/sys/kernel/random/write_wakeup_threshold",
-        "/proc/sys/kernel/printk",
+        // Memory
         "/proc/sys/vm/swappiness",
         "/proc/sys/vm/page-cluster",
         "/proc/sys/vm/vfs_cache_pressure",
@@ -35,19 +28,12 @@ object ProfileManager {
         "/proc/sys/vm/watermark_scale_factor",
         "/proc/sys/vm/dirty_ratio",
         "/proc/sys/vm/dirty_background_ratio",
-        "/proc/sys/net/ipv4/tcp_congestion_control",
-        "/proc/sys/net/core/rmem_max",
-        "/proc/sys/net/core/wmem_max",
-        "/proc/sys/net/ipv4/tcp_rmem",
-        "/proc/sys/net/ipv4/tcp_wmem",
-        "/proc/sys/fs/file-max",
-        "/proc/sys/fs/inotify/max_user_watches",
-        "/proc/sys/fs/inotify/max_user_instances",
-        "/proc/sys/fs/pipe-max-size",
+        // CPU boost/governor controls
         "/sys/module/ged/parameters/enable_cpu_boost",
         "/sys/module/ged/parameters/gx_force_cpu_boost",
         "/sys/module/ged/parameters/boost_upper_bound",
         "/sys/module/ged/parameters/deboost_reduce",
+        // GPU controls
         "/sys/module/ged/parameters/enable_gpu_boost",
         "/sys/module/ged/parameters/boost_gpu_enable",
         "/sys/module/ged/parameters/ged_boost_enable",
@@ -72,7 +58,6 @@ object ProfileManager {
     fun captureCurrent(name: String): KernelProfile? {
         val paths = LinkedHashSet(staticPaths)
         paths.addAll(dynamicCpuPaths())
-        paths.addAll(dynamicBlockPaths())
         val settings = LinkedHashMap<String, String>()
         for (path in paths) {
             val value = read(path) ?: continue

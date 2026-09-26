@@ -91,7 +91,7 @@ fun ProfilesScreen() {
                 item {
                     Text("Kernel settings profiles", style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.height(4.dp))
-                    Text("Save and restore supported CPU, GPU, VM, network, filesystem and I/O settings.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Save and restore only CPU, GPU, and Memory page settings.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         Button(onClick = { showName = true }, modifier = Modifier.weight(1f)) {
