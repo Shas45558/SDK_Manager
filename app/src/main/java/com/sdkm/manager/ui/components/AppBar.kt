@@ -32,6 +32,7 @@
 package com.sdkm.manager.ui.components
 
 import android.content.Intent
+import com.sdkm.manager.ui.monitor.MonitorActivity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
