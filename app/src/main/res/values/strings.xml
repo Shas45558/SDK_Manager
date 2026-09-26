@@ -82,6 +82,11 @@
     <string name="battery_design_capacity">Battery design capacity</string>
     <string name="tap_to_set_capacity">(Tap to set design capacity manually)</string>
     <string name="max_capacity">Maximum capacity</string>
+    <string name="charge_cycles">Charge cycles</string>
+    <string name="kernel_health">Kernel health</string>
+    <string name="charge_capacity">Full charge capacity</string>
+    <string name="health_estimate">Health estimate</string>
+    <string name="not_available">Not available</string>
     <string name="battery_max_capacity">Battery maximum capacity</string>
     <string name="set_manual_capacity">Set manual design capacity</string>
     <string name="capacity_hint">Design capacity (mAh)</string>

@@ -191,6 +191,9 @@ fun BatteryScreen(viewModel: BatteryViewModel = viewModel(), navController: NavC
                 item {
                     BatteryInfoCard(viewModel)
                 }
+                item {
+                    BatteryHealthCard(viewModel)
+                }
                 if (hasThermalSconfig) {
                     item {
                         ThermalProfilesCard(viewModel)
@@ -597,6 +600,50 @@ fun BatteryInfoCard(viewModel: BatteryViewModel) {
                 }
             },
         )
+    }
+}
+
+@Composable
+fun BatteryHealthCard(viewModel: BatteryViewModel) {
+    val batteryInfo by viewModel.batteryInfo.collectAsStateWithLifecycle()
+
+    val healthPercent = Regex("\\((\\d+)%\\)").find(batteryInfo.maximumCapacity)?.groupValues?.getOrNull(1)
+        ?: "N/A"
+
+    OutlinedCard(
+        shape = MaterialTheme.shapes.extraLarge,
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.surfaceBright),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ItemCard(
+                shape = CircleShape,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
+                icon = painterResource(materialsymbols_ic_heart_plus_rounded_filled),
+                title = stringResource(R.string.health),
+                titleLarge = true,
+            )
+            BatteryDetailRow(stringResource(R.string.health), batteryInfo.health)
+            BatteryDetailRow(stringResource(R.string.kernel_health), batteryInfo.kernelHealth)
+            BatteryDetailRow(stringResource(R.string.charge_cycles), batteryInfo.cycleCount)
+            BatteryDetailRow(stringResource(R.string.battery_max_capacity), batteryInfo.maximumCapacity)
+            BatteryDetailRow(stringResource(R.string.health_estimate), if (healthPercent != "N/A") "$healthPercent%" else "N/A")
+        }
+    }
+}
+
+@Composable
+private fun BatteryDetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

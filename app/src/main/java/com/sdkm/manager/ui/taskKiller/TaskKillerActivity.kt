@@ -35,12 +35,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.StopCircle
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -69,11 +73,15 @@ import java.util.Locale
 
 data class RunningProcess(
     val pid: Int,
+    val uid: Int,
     val processName: String,
     val packageName: String?,
     val appName: String,
     val rssKb: Long,
+    val cpuPercent: Float,
     val canStop: Boolean,
+    val isSystemApp: Boolean,
+    val frozen: Boolean,
 )
 
 class TaskKillerActivity : ComponentActivity() {
@@ -112,10 +120,12 @@ private fun TaskKillerScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     var processes by remember { mutableStateOf<List<RunningProcess>>(emptyList()) }
     var memory by remember { mutableStateOf(MemorySnapshot(0, 0, 0)) }
+    var showSystem by remember { mutableStateOf(false) }
+    var pendingFreeze by remember { mutableStateOf<RunningProcess?>(null) }
 
     fun refresh() {
         scope.launch(Dispatchers.IO) {
-            val newProcesses = TaskKillerUtils.getRunningProcesses(context)
+            val newProcesses = TaskKillerUtils.getRunningProcesses(context, processes)
             val newMemory = TaskKillerUtils.getMemory(context)
             launch(Dispatchers.Main) {
                 processes = newProcesses
@@ -124,129 +134,155 @@ private fun TaskKillerScreen(onBack: () -> Unit) {
         }
     }
 
-    LaunchedEffect(Unit) {
-        refresh()
-    }
-
+    LaunchedEffect(Unit) { refresh() }
     LaunchedEffect(Unit) {
         while (true) {
-            delay(3000)
+            delay(2000)
             refresh()
         }
     }
 
-    SDKMStandaloneDrawerHost {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(context.getString(R.string.task_killer)) },
-                navigationIcon = { SDKMStandaloneHamburgerMenu() },
-                actions = {
-                    IconButton(onClick = { refresh() }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = context.getString(R.string.refresh))
-                    }
-                },
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            item {
-                MemoryCard(memory)
-            }
-
-            if (processes.isEmpty()) {
-                item {
-                    Text(
-                        text = context.getString(R.string.no_running_processes),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                }
-            }
-
-            items(processes, key = { "${it.pid}:${it.processName}" }) { process ->
-                ProcessCard(
-                    process = process,
-                    onStop = {
-                        scope.launch(Dispatchers.IO) {
-                            if (!process.packageName.isNullOrBlank()) {
-                                TaskKillerUtils.forceStop(process.packageName)
-                            }
-                            refresh()
+    SDKMStandaloneDrawerHost(selectedItem = "Task Killer") {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Task Killer") },
+                    navigationIcon = { SDKMStandaloneHamburgerMenu() },
+                    actions = {
+                        IconButton(onClick = { refresh() }) {
+                            Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
                         }
                     },
                 )
+            },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier.padding(padding).fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                item { MemoryCard(memory, processes.size) }
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Running processes", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { showSystem = !showSystem }) {
+                            Text(if (showSystem) "Hide system" else "Show system")
+                        }
+                    }
+                }
+
+                val visible = processes.filter { showSystem || !it.isSystemApp }
+                if (visible.isEmpty()) {
+                    item { Text("No matching running processes", modifier = Modifier.padding(16.dp)) }
+                }
+                items(visible, key = { "${it.pid}:${it.packageName}:${it.processName}" }) { process ->
+                    ProcessCard(
+                        process = process,
+                        onStop = {
+                            scope.launch(Dispatchers.IO) {
+                                process.packageName?.let { TaskKillerUtils.forceStop(it) }
+                                refresh()
+                            }
+                        },
+                        onFreeze = { pendingFreeze = process },
+                    )
+                }
             }
         }
     }
+
+    pendingFreeze?.let { process ->
+        AlertDialog(
+            onDismissRequest = { pendingFreeze = null },
+            title = { Text(if (process.frozen) "Unfreeze app?" else "Freeze app?") },
+            text = {
+                Text(
+                    if (process.frozen)
+                        "Enable ${process.packageName} again for user 0."
+                    else
+                        "Disable ${process.packageName} for user 0. System apps can be required by Android; freezing one may cause features or the device UI to stop working."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val target = process
+                    pendingFreeze = null
+                    scope.launch(Dispatchers.IO) {
+                        target.packageName?.let { TaskKillerUtils.setFrozen(it, !target.frozen) }
+                        refresh()
+                    }
+                }) { Text(if (process.frozen) "Unfreeze" else "Freeze") }
+            },
+            dismissButton = { TextButton(onClick = { pendingFreeze = null }) { Text("Cancel") } },
+        )
     }
 }
 
 @androidx.compose.runtime.Composable
-private fun MemoryCard(memory: MemorySnapshot) {
+private fun MemoryCard(memory: MemorySnapshot, processCount: Int) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
         shape = MaterialTheme.shapes.extraLarge,
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("RAM", style = MaterialTheme.typography.titleMedium)
             Text(
                 "${formatBytes(memory.usedBytes)} / ${formatBytes(memory.totalBytes)}  •  ${formatBytes(memory.availableBytes)} available",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Text("$processCount running process entries", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @androidx.compose.runtime.Composable
-private fun ProcessCard(process: RunningProcess, onStop: () -> Unit) {
+private fun ProcessCard(
+    process: RunningProcess,
+    onStop: () -> Unit,
+    onFreeze: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
         shape = MaterialTheme.shapes.extraLarge,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    process.appName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                )
-                Text(
-                    "${process.processName}  •  PID ${process.pid}  •  ${formatKb(process.rssKb)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                )
-            }
-
-            if (process.canStop) {
-                Button(onClick = onStop) {
-                    Icon(
-                        Icons.Filled.StopCircle,
-                        contentDescription = null,
-                    )
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(process.appName, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                    Text(process.processName, style = MaterialTheme.typography.bodySmall, maxLines = 2, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        text = "  ${"Stop"}",
+                        "UID ${process.uid}  •  ${process.packageName ?: "unknown package"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                if (process.isSystemApp) Text("SYSTEM", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("RAM ${formatKb(process.rssKb)}", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                Text("CPU ${String.format(Locale.US, "%.1f", process.cpuPercent)}%", style = MaterialTheme.typography.labelMedium)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (process.canStop) {
+                    Button(onClick = onStop, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Filled.StopCircle, contentDescription = null)
+                        Text("  Force stop")
+                    }
+                }
+                if (process.packageName != null) {
+                    Button(onClick = onFreeze, modifier = Modifier.weight(1f)) {
+                        Icon(if (process.frozen) Icons.Filled.LockOpen else Icons.Filled.Lock, contentDescription = null)
+                        Text(if (process.frozen) "  Unfreeze" else "  Freeze")
+                    }
                 }
             }
         }
@@ -264,68 +300,60 @@ private object TaskKillerUtils {
         val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
         val info = android.app.ActivityManager.MemoryInfo()
         manager.getMemoryInfo(info)
-        return MemorySnapshot(
-            totalBytes = info.totalMem,
-            usedBytes = (info.totalMem - info.availMem).coerceAtLeast(0L),
-            availableBytes = info.availMem,
-        )
+        return MemorySnapshot(info.totalMem, (info.totalMem - info.availMem).coerceAtLeast(0L), info.availMem)
     }
 
-    fun getRunningProcesses(context: Context): List<RunningProcess> {
+    fun getRunningProcesses(context: Context, previous: List<RunningProcess>): List<RunningProcess> {
         val packageManager = context.packageManager
         val installed = packageManager.getInstalledApplications(0)
-            .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
-
-        // Root-only process discovery: Android's ActivityManager process list is heavily
-        // restricted on modern Android, so use the kernel-visible process table and map
-        // each UID back to a real installed user package.
         val uidToPackage = HashMap<Int, String>()
-        val packageOutput = Shell.cmd("cmd package list packages -3 -U").exec()
+        val packageOutput = Shell.cmd("cmd package list packages -U").exec()
         if (packageOutput.isSuccess) {
             packageOutput.out.forEach { line ->
                 val match = Regex("""package:([^\s]+)\s+uid:(\d+)""").find(line)
-                if (match != null) {
-                    uidToPackage[match.groupValues[2].toIntOrNull() ?: return@forEach] = match.groupValues[1]
-                }
+                if (match != null) uidToPackage.putIfAbsent(match.groupValues[2].toIntOrNull() ?: return@forEach, match.groupValues[1])
             }
         }
-
         val appByPackage = installed.associateBy { it.packageName }
-        val output = Shell.cmd("ps -A -o PID,UID,RSS,NAME").exec()
+        val output = Shell.cmd("ps -A -o PID,UID,RSS,PCPU,NAME").exec()
         if (!output.isSuccess) return emptyList()
-
-        return output.out.drop(1).mapNotNull { line ->
-            val match = Regex("""^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.+?)\s*$""").find(line)
-                ?: return@mapNotNull null
-            val pid = match.groupValues[1].toIntOrNull() ?: return@mapNotNull null
-            val uid = match.groupValues[2].toIntOrNull() ?: return@mapNotNull null
-            val rssKb = match.groupValues[3].toLongOrNull() ?: 0L
-            val processName = match.groupValues[4].trim()
-            if (pid <= 1 || processName.isBlank()) return@mapNotNull null
-
-            val packageName = uidToPackage[uid] ?: return@mapNotNull null
-            if (packageName == context.packageName) return@mapNotNull null
-            val appInfo = appByPackage[packageName] ?: return@mapNotNull null
-            val appName = appInfo.loadLabel(packageManager).toString()
-
-            RunningProcess(
-                pid = pid,
-                processName = processName,
-                packageName = packageName,
-                appName = appName,
-                rssKb = rssKb,
-                canStop = true,
-            )
-        }
-            .groupBy { it.packageName }
-            .mapNotNull { (_, list) -> list.maxByOrNull { it.rssKb } }
-            .sortedByDescending { it.rssKb }
+        val result = output.out.drop(1).mapNotNull { line ->
+            val m = Regex("""^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(.+?)\s*$""").find(line) ?: return@mapNotNull null
+            val pid = m.groupValues[1].toIntOrNull() ?: return@mapNotNull null
+            val uid = m.groupValues[2].toIntOrNull() ?: return@mapNotNull null
+            val rss = m.groupValues[3].toLongOrNull() ?: 0L
+            val pCpu = m.groupValues[4].replace("%", "").toFloatOrNull() ?: 0f
+            val name = m.groupValues[5].trim()
+            if (pid <= 1 || name.isBlank()) return@mapNotNull null
+            val pkg = uidToPackage[uid] ?: return@mapNotNull null
+            if (pkg == context.packageName) return@mapNotNull null
+            val app = appByPackage[pkg] ?: return@mapNotNull null
+            val system = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+            val frozen = isFrozen(pkg)
+            val cpu = pCpu.coerceIn(0f, 100f)
+            RunningProcess(pid, uid, name, pkg, app.loadLabel(packageManager).toString(), rss, cpu, true, system, frozen)
+        }.groupBy { "${it.packageName}:${it.pid}" }.map { it.value.first() }
+        return result.sortedWith(compareByDescending<RunningProcess> { it.cpuPercent }.thenByDescending { it.rssKb })
     }
 
     fun forceStop(packageName: String) {
-        if (!Regex("""^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+$""").matches(packageName)) return
+        if (!validPackage(packageName)) return
         Shell.cmd("am force-stop $packageName").exec()
     }
+
+    fun setFrozen(packageName: String, frozen: Boolean) {
+        if (!validPackage(packageName)) return
+        if (frozen) Shell.cmd("pm disable-user --user 0 $packageName").exec()
+        else Shell.cmd("pm enable $packageName").exec()
+    }
+
+    private fun isFrozen(packageName: String): Boolean {
+        if (!validPackage(packageName)) return false
+        val r = Shell.cmd("pm list packages -d $packageName").exec()
+        return r.isSuccess && r.out.any { it.trim() == "package:$packageName" }
+    }
+
+    private fun validPackage(packageName: String): Boolean = Regex("""^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+$""").matches(packageName)
 }
 
 private fun formatBytes(bytes: Long): String {

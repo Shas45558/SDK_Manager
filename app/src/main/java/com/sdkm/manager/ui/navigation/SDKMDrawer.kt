@@ -30,9 +30,11 @@ import androidx.compose.material.icons.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.ListAlt
 import androidx.compose.material.icons.rounded.MonitorHeart
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -62,6 +64,7 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.sdkm.manager.ui.home.HomeViewModel
 import com.sdkm.manager.ui.monitor.GameMonitorService
+import com.sdkm.manager.ui.monitor.MonitorActivity
 import com.sdkm.manager.ui.settings.SettingsActivity
 import com.sdkm.manager.ui.taskKiller.TaskKillerActivity
 import com.sdkm.manager.utils.Utils
@@ -111,21 +114,29 @@ fun SDKMDrawer(
             scope.launch { drawerClose() }
             navController.navigate(GpuRoute) { launchSingleTop = true }
         }
-        DrawerItem("Monitor", Icons.Rounded.MonitorHeart) {
+        DrawerItem("Memory", Icons.Rounded.Memory, selectedRoute == MemoryRoute) {
             scope.launch { drawerClose() }
-            if (Settings.canDrawOverlays(context)) {
-                ContextCompat.startForegroundService(context, Intent(context, GameMonitorService::class.java).setAction(GameMonitorService.ACTION_START))
-            } else {
-                context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")))
-            }
+            navController.navigate(MemoryRoute) { launchSingleTop = true }
+        }
+        DrawerItem("Monitor", Icons.Rounded.MonitorHeart, selectedRoute == MonitorRoute) {
+            scope.launch { drawerClose() }
+            context.startActivity(Intent(context, MonitorActivity::class.java))
+        }
+        DrawerItem("Kernel Tuning", Icons.Rounded.Tune, selectedRoute == KernelTuningRoute) {
+            scope.launch { drawerClose() }
+            navController.navigate(KernelTuningRoute) { launchSingleTop = true }
         }
         DrawerItem("Task Killer", Icons.Rounded.DeleteSweep) {
             scope.launch { drawerClose() }
             context.startActivity(Intent(context, TaskKillerActivity::class.java))
         }
-        DrawerItem("Kernel Settings", Icons.Rounded.Memory, selectedRoute == KernelSettingsRoute) {
+        DrawerItem("Logs", Icons.Rounded.ListAlt, selectedRoute == LogsRoute) {
             scope.launch { drawerClose() }
-            navController.navigate(KernelSettingsRoute) { launchSingleTop = true }
+            navController.navigate(LogsRoute) { launchSingleTop = true }
+        }
+        DrawerItem("Backup / Profiles", Icons.Rounded.Backup, selectedRoute == ProfilesRoute) {
+            scope.launch { drawerClose() }
+            navController.navigate(ProfilesRoute) { launchSingleTop = true }
         }
         DrawerItem("Settings", Icons.Rounded.Settings) {
             scope.launch { drawerClose() }

@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
@@ -32,18 +33,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.sdkm.manager.utils.KernelUtils
 import com.sdkm.manager.ui.components.SimpleTopAppBar
+import com.sdkm.manager.utils.SoCUtils
 
 @Composable
-fun KernelSettingsScreen(
+fun MemoryScreen(
     viewModel: KernelParameterViewModel = viewModel(),
     navController: NavController,
 ) {
     val memory by viewModel.memory.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val prefs = remember { context.getSharedPreferences("sdkm_kernel_settings", android.content.Context.MODE_PRIVATE) }
-    val savedSwappiness = remember { prefs.getInt("swappiness", -1) }
-
-    var swappiness by remember { mutableFloatStateOf(savedSwappiness.takeIf { it in 0..200 }?.toFloat() ?: 0f) }
+    var swappiness by remember { mutableFloatStateOf(0f) }
     var extraFreeKbytes by remember { mutableFloatStateOf(0f) }
     var pageCluster by remember { mutableStateOf("0") }
     var vfsCachePressure by remember { mutableStateOf("200") }
@@ -51,9 +49,7 @@ fun KernelSettingsScreen(
     var dirtyBackgroundRatio by remember { mutableStateOf("5") }
 
     LaunchedEffect(memory.swappiness, memory.extraFreeKbytes, memory.pageCluster, memory.vfsCachePressure, memory.dirtyRatio, memory.dirtyBackgroundRatio) {
-        if (savedSwappiness !in 0..200) {
-            swappiness = memory.swappiness.toFloatOrNull()?.coerceIn(0f, 200f) ?: 0f
-        }
+        swappiness = memory.swappiness.toFloatOrNull()?.coerceIn(0f, 200f) ?: 0f
         extraFreeKbytes = memory.extraFreeKbytes.toFloatOrNull()?.coerceIn(0f, 131072f) ?: 0f
         if (memory.pageCluster.isNotBlank() && memory.pageCluster != "N/A") pageCluster = memory.pageCluster
         if (memory.vfsCachePressure.isNotBlank() && memory.vfsCachePressure != "N/A") vfsCachePressure = memory.vfsCachePressure
@@ -62,12 +58,18 @@ fun KernelSettingsScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        SimpleTopAppBar(title = "Kernel Settings")
+        SimpleTopAppBar(title = "Memory")
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item {
+                RamInfoCard()
+            }
+            item {
+                ZramInfoCard(memory)
+            }
             item {
                 KernelSliderCard(
                     title = "Swappiness",
@@ -77,7 +79,6 @@ fun KernelSettingsScreen(
                     onValueChange = { swappiness = it },
                     onApply = {
                         val value = swappiness.toInt()
-                        prefs.edit().putInt("swappiness", value).apply()
                         viewModel.setValue(KernelUtils.SWAPPINESS, value.toString())
                     },
                 )
@@ -114,6 +115,45 @@ fun KernelSettingsScreen(
             }
         }
     }
+}
+
+@Composable
+private fun RamInfoCard() {
+    val context = LocalContext.current
+    val ram = remember { SoCUtils.getRamMemoryInfo(context) }
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("RAM", style = MaterialTheme.typography.titleMedium)
+            Text("Total ${ram.total}", style = MaterialTheme.typography.bodyMedium)
+            Text("Used ${ram.used}", style = MaterialTheme.typography.bodyMedium)
+            Text("Free ${ram.free}", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+private fun ZramInfoCard(memory: KernelParameterViewModel.Memory) {
+    val progress = if (memory.zramTotalBytes > 0L) (memory.zramUsedBytes.toFloat() / memory.zramTotalBytes).coerceIn(0f, 1f) else 0f
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("ZRAM", style = MaterialTheme.typography.titleMedium)
+                Text(memory.zramSize, color = MaterialTheme.colorScheme.primary)
+            }
+            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Used ${formatMemoryBytes(memory.zramUsedBytes)}")
+                Text("Free ${formatMemoryBytes(memory.zramFreeBytes)}")
+            }
+            if (memory.zramCompAlgorithm != "N/A") Text("Compression: ${memory.zramCompAlgorithm}")
+        }
+    }
+}
+
+private fun formatMemoryBytes(bytes: Long): String {
+    if (bytes <= 0L) return "0 MB"
+    val mib = bytes / (1024.0 * 1024.0)
+    return if (mib >= 1024.0) "%.1f GB".format(java.util.Locale.US, mib / 1024.0).replace(".0 GB", " GB") else "%.0f MB".format(java.util.Locale.US, mib)
 }
 
 @Composable

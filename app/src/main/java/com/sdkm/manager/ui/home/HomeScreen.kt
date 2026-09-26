@@ -195,7 +195,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                     }
                 }
                 item {
-                    DashboardSection("RAM & ZRAM") {
+                    DashboardSection("RAM & ZRAM", modifier = Modifier.clickable { navController.navigate("memory") }) {
                         val ramUsed = formatBytes(ramState.usedBytes)
                         val ramTotal = formatBytes(ramState.totalBytes)
                         val zramUsed = formatBytes(zramMemory.usedBytes)
@@ -255,8 +255,12 @@ private fun DashboardBatterySection(batteryInfo: BatteryViewModel.BatteryInfo) {
 }
 
 @Composable
-private fun DashboardSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+private fun DashboardSection(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 3.dp))
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(9.dp)) {
             Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), content = content)

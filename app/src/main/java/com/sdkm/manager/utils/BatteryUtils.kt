@@ -48,6 +48,8 @@ object BatteryUtils {
     const val BATTERY_DESIGN_CAPACITY = "/sys/class/power_supply/battery/charge_full_design"
     const val BATTERY_MAXIMUM_CAPACITY = "/sys/class/power_supply/battery/charge_full"
     const val BATTERY_TECHNOLOGY = "/sys/class/power_supply/battery/technology"
+    const val BATTERY_CYCLE_COUNT = "/sys/class/power_supply/battery/cycle_count"
+    const val BATTERY_HEALTH = "/sys/class/power_supply/battery/health"
 
     const val THERMAL_SCONFIG = "/sys/class/thermal/thermal_message/sconfig"
 
@@ -80,6 +82,46 @@ object BatteryUtils {
     }.getOrElse {
         Log.e(TAG, "getBatteryHealth: ${it.message}", it)
         context.getString(R.string.unknown)
+    }
+
+
+    /** Returns the kernel-reported charge cycle count when exposed by the battery driver. */
+    fun getBatteryCycleCount(context: Context): String = runCatching {
+        val candidates = listOf(
+            BATTERY_CYCLE_COUNT,
+            "/sys/class/power_supply/bms/cycle_count",
+            "/sys/class/power_supply/battery/charge_cycles",
+        )
+        for (path in candidates) {
+            val result = Shell.cmd("cat $path").exec()
+            if (result.isSuccess && result.out.isNotEmpty()) {
+                val value = result.out.firstOrNull()?.trim()?.toIntOrNull()
+                if (value != null && value >= 0) return "$value"
+            }
+        }
+        context.getString(R.string.not_available)
+    }.getOrElse {
+        Log.e(TAG, "getBatteryCycleCount: ${it.message}", it)
+        context.getString(R.string.not_available)
+    }
+
+    /** Returns the raw health string exported by the kernel power-supply driver, if available. */
+    fun getKernelBatteryHealth(context: Context): String = runCatching {
+        val candidates = listOf(
+            BATTERY_HEALTH,
+            "/sys/class/power_supply/bms/health",
+        )
+        for (path in candidates) {
+            val result = Shell.cmd("cat $path").exec()
+            if (result.isSuccess && result.out.isNotEmpty()) {
+                val value = result.out.firstOrNull()?.trim()
+                if (!value.isNullOrBlank()) return value
+            }
+        }
+        context.getString(R.string.not_available)
+    }.getOrElse {
+        Log.e(TAG, "getKernelBatteryHealth: ${it.message}", it)
+        context.getString(R.string.not_available)
     }
 
     fun getBatteryLevel(context: Context): String = runCatching {

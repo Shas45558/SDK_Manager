@@ -72,9 +72,11 @@ import androidx.compose.material.icons.rounded.ExitToApp
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Memory
+import androidx.compose.material.icons.rounded.ListAlt
 import androidx.compose.material.icons.rounded.MonitorHeart
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -94,8 +96,9 @@ import com.sdkm.manager.ui.navigation.LocalSDKMDrawer
 import com.sdkm.manager.ui.navigation.HomeRoute
 import com.sdkm.manager.ui.navigation.CpuRoute
 import com.sdkm.manager.ui.navigation.GpuRoute
-import com.sdkm.manager.ui.navigation.BatteryRoute
-import com.sdkm.manager.ui.navigation.KernelSettingsRoute
+import com.sdkm.manager.ui.navigation.MemoryRoute
+import com.sdkm.manager.ui.navigation.LogsRoute
+import com.sdkm.manager.ui.navigation.ProfilesRoute
 import com.sdkm.manager.ui.home.HomeViewModel
 import com.sdkm.manager.ui.monitor.GameMonitorService
 import com.sdkm.manager.ui.settings.SettingsActivity
@@ -179,7 +182,6 @@ fun SDKMStandaloneDrawerHost(content: @Composable () -> Unit) {
                 StandaloneDrawerItem("Home", Icons.Rounded.Home) { scope.launch { drawerState.close(); openMain(HomeRoute) } }
                 StandaloneDrawerItem("CPU", Icons.Rounded.Memory) { scope.launch { drawerState.close(); openMain(CpuRoute) } }
                 StandaloneDrawerItem("GPU", Icons.Rounded.DeveloperBoard) { scope.launch { drawerState.close(); openMain(GpuRoute) } }
-                StandaloneDrawerItem("Battery", Icons.Rounded.Memory) { scope.launch { drawerState.close(); openMain(BatteryRoute) } }
                 StandaloneDrawerItem("Monitor", Icons.Rounded.MonitorHeart) {
                     scope.launch { drawerState.close() }
                     if (Settings.canDrawOverlays(context)) {
@@ -193,7 +195,9 @@ fun SDKMStandaloneDrawerHost(content: @Composable () -> Unit) {
                     context.startActivity(Intent(context, TaskKillerActivity::class.java))
                     (context as? android.app.Activity)?.finish()
                 }
-                StandaloneDrawerItem("Kernel Settings", Icons.Rounded.Memory) { scope.launch { drawerState.close(); openMain(KernelSettingsRoute) } }
+                StandaloneDrawerItem("Memory", Icons.Rounded.Memory) { scope.launch { drawerState.close(); openMain(MemoryRoute) } }
+                StandaloneDrawerItem("Logs", Icons.Rounded.ListAlt) { scope.launch { drawerState.close(); openMain(LogsRoute) } }
+                StandaloneDrawerItem("Backup / Profiles", Icons.Rounded.Backup) { scope.launch { drawerState.close(); openMain(ProfilesRoute) } }
                 StandaloneDrawerItem("Settings", Icons.Rounded.Settings) {
                     scope.launch { drawerState.close() }
                     context.startActivity(Intent(context, SettingsActivity::class.java))

@@ -62,6 +62,8 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
         val designCapacity: String = "N/A",
         val manualDesignCapacity: Int = 0,
         val maximumCapacity: String = "N/A",
+        val cycleCount: String = "N/A",
+        val kernelHealth: String = "N/A",
     )
 
     data class ChargingState(
@@ -112,6 +114,8 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
                 val manualDesignCapacity = batteryPreference.getManualDesignCapacity()
                 val designCapacity = if (manualDesignCapacity != 0) "$manualDesignCapacity mAh" else BatteryUtils.getBatteryDesignCapacity(context)
                 val deepSleep = BatteryUtils.getDeepSleep(context)
+                val cycleCount = BatteryUtils.getBatteryCycleCount(context)
+                val kernelHealth = BatteryUtils.getKernelBatteryHealth(context)
 
                 _batteryInfo.value = _batteryInfo.value.copy(
                     level = level,
@@ -120,6 +124,8 @@ class BatteryViewModel(application: Application) : AndroidViewModel(application)
                     designCapacity = designCapacity,
                     manualDesignCapacity = manualDesignCapacity,
                     deepSleep = deepSleep,
+                    cycleCount = cycleCount,
+                    kernelHealth = kernelHealth,
                 )
             } catch (e: Exception) {
                 Log.e("BatteryVM", "Error loading battery info", e)

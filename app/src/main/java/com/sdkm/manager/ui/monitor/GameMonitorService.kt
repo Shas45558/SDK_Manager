@@ -56,22 +56,29 @@ class GameMonitorService : Service() {
     private var showGpu = true
     private var showRam = true
     private var showZram = true
+    private var lastCpu = 0
+    private var lastGpu = 0
+    private var lastRam = 0
+    private var overlayEnabled = true
 
     override fun onCreate() {
         super.onCreate()
         loadMetricPreferences()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
-        if (Settings.canDrawOverlays(this)) showOverlay()
+        if (overlayEnabled && Settings.canDrawOverlays(this)) showOverlay()
         startMonitoring()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP || !Settings.canDrawOverlays(this)) {
-            stopSelf()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            ACTION_STOP -> { stopSelf(); return START_NOT_STICKY }
+            ACTION_START_NOTIFICATION -> overlayEnabled = false
+            ACTION_START_OVERLAY, ACTION_START -> overlayEnabled = true
         }
-        if (overlay == null) showOverlay()
+        if (overlayEnabled && !Settings.canDrawOverlays(this)) { stopSelf(); return START_NOT_STICKY }
+        if (overlayEnabled && overlay == null) showOverlay()
+        if (!overlayEnabled && overlay != null) { runCatching { windowManager?.removeView(overlay) }; overlay = null }
         startMonitoring()
         return START_STICKY
     }
@@ -128,6 +135,7 @@ class GameMonitorService : Service() {
         val gpuUsage = stats.gpuUsage
         val ramUsedPercent = if (stats.ramTotal > 0) (stats.ramUsed * 100 / stats.ramTotal).toInt().coerceIn(0, 100) else 0
         val zramUsedPercent = if (stats.zramTotal > 0) (stats.zramUsed * 100 / stats.zramTotal).toInt().coerceIn(0, 100) else 0
+        lastCpu = cpuUsage; lastGpu = gpuUsage; lastRam = ramUsedPercent
 
         cpuFreqText?.text = "CPU ${cpuUsage}%"
         gpuFreqText?.text = "GPU ${gpuUsage}%"
@@ -336,7 +344,7 @@ class GameMonitorService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("Game Monitor")
-            .setContentText("CPU • GPU • RAM • ZRAM monitoring is active")
+            .setContentText("CPU ${lastCpu}% • GPU ${lastGpu}% • RAM ${lastRam}%")
             .setContentIntent(intent)
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -372,6 +380,8 @@ class GameMonitorService : Service() {
 
     companion object {
         const val ACTION_START = "com.sdkm.manager.monitor.START"
+        const val ACTION_START_OVERLAY = "com.sdkm.manager.monitor.START_OVERLAY"
+        const val ACTION_START_NOTIFICATION = "com.sdkm.manager.monitor.START_NOTIFICATION"
         const val ACTION_STOP = "com.sdkm.manager.monitor.STOP"
         private const val CHANNEL_ID = "game_monitor"
         private const val NOTIFICATION_ID = 7001
