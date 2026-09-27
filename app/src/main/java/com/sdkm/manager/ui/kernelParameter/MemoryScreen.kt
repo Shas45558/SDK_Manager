@@ -51,7 +51,7 @@ fun MemoryScreen(
     var dirtyBackgroundRatio by remember { mutableFloatStateOf(5f) }
 
     LaunchedEffect(memory.swappiness, memory.extraFreeKbytes, memory.pageCluster, memory.vfsCachePressure, memory.dirtyRatio, memory.dirtyBackgroundRatio) {
-        swappiness = memory.swappiness.toFloatOrNull()?.coerceIn(0f, 200f) ?: 0f
+        swappiness = memory.swappiness.toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f
         extraFreeKbytes = memory.extraFreeKbytes.toFloatOrNull()?.coerceIn(0f, 131072f) ?: 0f
         memory.pageCluster.toFloatOrNull()?.let { pageCluster = it.coerceIn(0f, 8f) }
         memory.vfsCachePressure.toFloatOrNull()?.let { vfsCachePressure = it.coerceIn(0f, 500f) }
@@ -77,7 +77,7 @@ fun MemoryScreen(
                     value = swappiness,
                     onValueChange = { swappiness = it },
                     onApply = {
-                        val value = swappiness.toInt().coerceIn(0, 200)
+                        val value = swappiness.toInt().coerceIn(0, 100)
                         scope.launch { viewModel.setValue(KernelUtils.SWAPPINESS, value.toString()).join() }
                     },
                 )
@@ -195,7 +195,7 @@ private fun SwappinessCard(
             Slider(
                 value = value,
                 onValueChange = onValueChange,
-                valueRange = 0f..200f,
+                valueRange = 0f..100f,
             )
             Button(onClick = onApply, modifier = Modifier.fillMaxWidth()) { Text("Apply") }
         }

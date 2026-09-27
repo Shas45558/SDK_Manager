@@ -162,11 +162,13 @@ fun LogsScreen() {
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(onClick = { paused = !paused }) {
+                    Button(onClick = { paused = !paused }, modifier = Modifier.weight(1f)) {
                         Icon(if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, contentDescription = if (paused) "Resume" else "Pause")
                         Text(if (paused) "Resume" else "Pause")
                     }
-                    Button(onClick = { clearDialog = true }) { Text("Clear buffers") }
+                    Button(onClick = { clearDialog = true }, modifier = Modifier.weight(1f)) {
+                        Text("Clear buffers")
+                    }
                 }
                 Button(
                     modifier = Modifier.fillMaxWidth(),
