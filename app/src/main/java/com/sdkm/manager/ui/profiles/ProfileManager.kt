@@ -183,7 +183,7 @@ object ProfileManager {
             appendLine("sleep 8")
 
             // Bring all CPUs online before applying policy/governor settings.
-            appendLine("for c in /sys/devices/system/cpu/cpu[0-9]*/online; do [ -e \"$c\" ] && echo 1 > \"$c\" 2>/dev/null; done")
+            appendLine("for c in /sys/devices/system/cpu/cpu[0-9]*/online; do [ -e \"${'$'}c\" ] && echo 1 > \"${'$'}c\" 2>/dev/null; done")
 
             val governorEntries = profile.settings.filterKeys { it.endsWith("/scaling_governor") }
             val otherEntries = profile.settings.filterKeys {
@@ -196,7 +196,7 @@ object ProfileManager {
             }
             // If any requested governor failed, fall back to schedutil for
             // every available CPU policy (little + big clusters).
-            appendLine("if [ \"$gov_failed\" -eq 1 ]; then for g in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do [ -e \"$g\" ] && echo schedutil > \"$g\" 2>/dev/null; done; fi")
+            appendLine("if [ \"${'$'}gov_failed\" -eq 1 ]; then for g in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do [ -e \"${'$'}g\" ] && echo schedutil > \"${'$'}g\" 2>/dev/null; done; fi")
             otherEntries.forEach { (path, value) ->
                 val encoded = android.util.Base64.encodeToString(value.toByteArray(), android.util.Base64.NO_WRAP)
                 appendLine("if [ -e ${q(path)} ]; then echo '$encoded' | base64 -d | cat > ${q(path)} 2>/dev/null; fi")
