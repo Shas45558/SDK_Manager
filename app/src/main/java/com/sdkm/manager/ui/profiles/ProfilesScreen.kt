@@ -125,7 +125,15 @@ fun ProfilesScreen() {
                         onApply = {
                             val result = ProfileManager.restore(context, profile)
                             currentProfileName = profile.name
-                            message = "Applied ${profile.name}: ${result.success} settings${if (result.failed > 0) "; ${result.failed} failed" else ""}"
+                            // Built-in profiles apply silently. Only report values that actually failed;
+                            // governor failures are reported as the schedutil fallback value.
+                            message = if (result.failedValues.isNotEmpty()) {
+                                result.failedValues.entries.joinToString("; ") { (path, value) ->
+                                    "${path.substringAfterLast('/')} = $value"
+                                }
+                            } else {
+                                null
+                            }
                         },
                     )
                 }

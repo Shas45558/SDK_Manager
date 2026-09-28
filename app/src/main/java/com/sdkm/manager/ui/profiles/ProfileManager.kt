@@ -125,6 +125,7 @@ object ProfileManager {
     private fun apply(settings: Map<String, String>): ApplyResult {
         var success = 0
         var failed = 0
+        val failedValues = linkedMapOf<String, String>()
 
         // Always bring every CPU core online first. This is required so that
         // policy/governor settings can be applied even when a profile later
@@ -133,7 +134,10 @@ object ProfileManager {
             .filter { it.matches(Regex("/sys/devices/system/cpu/cpu[0-9]+/online")) }
         onlinePaths.forEach { path ->
             val result = Shell.cmd("[ -e ${q(path)} ] && printf '%s' '1' > ${q(path)}").exec()
-            if (result.isSuccess) success++ else failed++
+            if (result.isSuccess) success++ else {
+                failed++
+                read(path)?.let { failedValues[path] = it.trim() }
+            }
         }
 
         // Apply governor settings before the remaining settings. If any
@@ -143,7 +147,12 @@ object ProfileManager {
         var governorFailed = false
         governorEntries.forEach { (path, value) ->
             val result = Shell.cmd("[ -e ${q(path)} ] && printf '%s' ${q(value)} > ${q(path)}").exec()
-            if (result.isSuccess) success++ else { failed++; governorFailed = true }
+            if (result.isSuccess) success++ else {
+                failed++
+                governorFailed = true
+                // The requested governor failed; the fallback below will set schedutil.
+                failedValues[path] = "schedutil"
+            }
         }
         if (governorFailed) {
             governorEntries.keys.forEach { path ->
@@ -153,6 +162,7 @@ object ProfileManager {
                     // do not count the fallback as an additional failure.
                     if (failed > 0) failed--
                     success++
+                    failedValues[path] = read(path)?.trim() ?: "schedutil"
                 }
             }
         }
@@ -161,7 +171,10 @@ object ProfileManager {
         settings.forEach { (path, value) ->
             if (path.endsWith("/scaling_governor") || path.matches(Regex("/sys/devices/system/cpu/cpu[0-9]+/online"))) return@forEach
             val result = Shell.cmd("[ -e ${q(path)} ] && printf '%s' ${q(value)} > ${q(path)}").exec()
-            if (result.isSuccess) success++ else failed++
+            if (result.isSuccess) success++ else {
+                failed++
+                read(path)?.let { failedValues[path] = it.trim() }
+            }
         }
 
         // Finally honor explicit CPU-offline requests from the JSON profile.
@@ -169,10 +182,13 @@ object ProfileManager {
             .filterValues { it.trim() == "0" }
             .forEach { (path, value) ->
                 val result = Shell.cmd("[ -e ${q(path)} ] && printf '%s' '0' > ${q(path)}").exec()
-                if (result.isSuccess) success++ else failed++
+                if (result.isSuccess) success++ else {
+                    failed++
+                    read(path)?.let { failedValues[path] = it.trim() }
+                }
             }
 
-        return ApplyResult(success, failed)
+        return ApplyResult(success, failed, failedValues)
     }
 
     private fun buildBootScript(profile: KernelProfile): String {
@@ -227,5 +243,9 @@ object ProfileManager {
     private fun safeName(name: String): String = name.trim().replace(Regex("[^A-Za-z0-9._-]+"), "_").take(64).ifBlank { "profile" }
     private fun q(value: String) = "'" + value.replace("'", "'\\''") + "'"
 
-    data class ApplyResult(val success: Int, val failed: Int)
+    data class ApplyResult(
+        val success: Int,
+        val failed: Int,
+        val failedValues: Map<String, String> = emptyMap(),
+    )
 }
