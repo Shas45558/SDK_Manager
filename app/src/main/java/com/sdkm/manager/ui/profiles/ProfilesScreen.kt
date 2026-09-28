@@ -4,7 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,6 +51,7 @@ import java.util.Date
 fun ProfilesScreen() {
     val context = LocalContext.current
     var profiles by remember { mutableStateOf(ProfileManager.list(context)) }
+    val builtinProfiles = remember { ProfileManager.builtinProfiles(context) }
     var bootProfile by remember { mutableStateOf<String?>(null) }
     var showName by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf<KernelProfile?>(null) }
@@ -107,6 +107,22 @@ fun ProfilesScreen() {
                     }
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
                 }
+                item {
+                    Text("Built-in Templates", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Apply-only JSON templates. Built-in templates cannot be deleted or exported.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                }
+                items(builtinProfiles, key = { "builtin-${it.name}" }) { profile ->
+                    BuiltinProfileCard(
+                        profile = profile,
+                        onApply = {
+                            val result = ProfileManager.restore(profile)
+                            message = "Applied ${profile.name}: ${result.success} settings${if (result.failed > 0) "; ${result.failed} failed" else ""}"
+                        },
+                    )
+                }
+                item { HorizontalDivider(Modifier.padding(vertical = 4.dp)) }
+                item { Text("My Profiles", style = MaterialTheme.typography.titleMedium) }
                 if (profiles.isEmpty()) {
                     item { Text("No saved profiles yet.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
@@ -174,6 +190,26 @@ fun ProfilesScreen() {
 
     message?.let { msg ->
         AlertDialog(onDismissRequest = { message = null }, title = { Text("Backup / Profiles") }, text = { Text(msg) }, confirmButton = { TextButton(onClick = { message = null }) { Text("OK") } })
+    }
+}
+
+@Composable
+private fun BuiltinProfileCard(
+    profile: KernelProfile,
+    onApply: () -> Unit,
+) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text(profile.name, style = MaterialTheme.typography.titleMedium)
+                Text("${profile.settings.size} settings • Built-in JSON template", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Button(onClick = onApply) {
+                androidx.compose.material3.Icon(Icons.Rounded.Restore, null)
+                Spacer(Modifier.padding(horizontal = 2.dp))
+                Text("Apply")
+            }
+        }
     }
 }
 

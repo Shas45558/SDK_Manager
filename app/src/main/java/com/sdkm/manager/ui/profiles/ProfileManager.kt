@@ -47,6 +47,21 @@ object ProfileManager {
 
     fun profilesDir(context: Context): File = File(context.filesDir, "kernel_profiles").apply { mkdirs() }
 
+    private val builtinProfileFiles = listOf(
+        "gaming.json" to "Gaming",
+        "performance.json" to "Performance",
+        "balance.json" to "Balance",
+        "battery_saver.json" to "Battery Saver",
+        "ultra_power_saver.json" to "Ultra Power Saver",
+    )
+
+    fun builtinProfiles(context: Context): List<KernelProfile> = builtinProfileFiles.mapNotNull { (fileName, _) ->
+        runCatching {
+            val content = context.assets.open("builtin_profiles/$fileName").bufferedReader().use { it.readText() }
+            json.decodeFromString<KernelProfile>(content)
+        }.getOrNull()
+    }
+
     fun list(context: Context): List<KernelProfile> = profilesDir(context).listFiles()
         ?.filter { it.extension == "json" }
         ?.mapNotNull { runCatching { json.decodeFromString<KernelProfile>(it.readText()) }.getOrNull() }
