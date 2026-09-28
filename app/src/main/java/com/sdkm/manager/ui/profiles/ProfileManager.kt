@@ -17,6 +17,8 @@ data class KernelProfile(
 
 object ProfileManager {
     private const val BOOT_SCRIPT = "/data/adb/service.d/sdkm_profile.sh"
+    private const val PREFS = "profile_state"
+    private const val KEY_CURRENT = "current_profile"
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
     private val staticPaths = listOf(
@@ -95,7 +97,14 @@ object ProfileManager {
         json.decodeFromString<KernelProfile>(content).also { save(context, it) }
     }.getOrNull()
 
-    fun restore(profile: KernelProfile): ApplyResult = apply(profile.settings)
+    fun restore(context: Context, profile: KernelProfile): ApplyResult {
+        val result = apply(profile.settings)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_CURRENT, profile.name).apply()
+        return result
+    }
+
+    fun currentProfileName(context: Context): String? =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_CURRENT, null)
 
     fun setBootProfile(profile: KernelProfile): Boolean {
         val script = buildBootScript(profile)

@@ -56,6 +56,7 @@ import com.sdkm.manager.ui.soc.SoCViewModel
 import com.sdkm.manager.ui.components.SimpleTopAppBar
 import com.sdkm.manager.ui.navigation.CpuRoute
 import com.sdkm.manager.ui.navigation.GpuRoute
+import com.sdkm.manager.ui.profiles.ProfileManager
 
 @Composable
 fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavController) {
@@ -101,6 +102,7 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
     val ramState by socViewModel.ramState.collectAsStateWithLifecycle()
     val cpuCoreMetrics by socViewModel.cpuCoreMetrics.collectAsStateWithLifecycle()
     val batteryInfo by batteryViewModel.batteryInfo.collectAsStateWithLifecycle()
+    val currentProfile = ProfileManager.currentProfileName(context)
 
 
     Scaffold(
@@ -138,7 +140,11 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                             }
                         }
                         CompactRow("Little Max", cpuState.maxFreq + " MHz")
-                        if (hasBigCluster) CompactRow("Big Max", bigClusterState.maxFreq + " MHz")
+                        CompactRow("Little Governor", cpuState.gov.ifBlank { "N/A" })
+                        if (hasBigCluster) {
+                            CompactRow("Big Max", bigClusterState.maxFreq + " MHz")
+                            CompactRow("Big Governor", bigClusterState.gov.ifBlank { "N/A" })
+                        }
                         if (hasPrimeCluster) CompactRow("Prime Max", primeClusterState.maxFreq + " MHz")
                     }
                 }
@@ -161,6 +167,17 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(), navController: NavControl
                         CompactRow("ZRAM Free", zramFree)
                         val zramRatio = if (zramMemory.totalBytes > 0) (zramMemory.usedBytes.toFloat() / zramMemory.totalBytes).coerceIn(0f, 1f) else 0f
                         MiniBar(zramRatio)
+                    }
+                }
+                item {
+                    DashboardSection("CURRENT PROFILE") {
+                        CompactRow("Profile", currentProfile ?: "No profile applied")
+                        androidx.compose.material3.Button(
+                            onClick = { navController.navigate("profiles") },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Choose")
+                        }
                     }
                 }
                 item {

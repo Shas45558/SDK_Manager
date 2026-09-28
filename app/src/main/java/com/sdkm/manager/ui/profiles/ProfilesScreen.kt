@@ -16,6 +16,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Backup
+import androidx.compose.material.icons.rounded.BatterySaver
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Balance
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.FileUpload
@@ -57,6 +62,7 @@ fun ProfilesScreen() {
     var showDelete by remember { mutableStateOf<KernelProfile?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var selectedForExport by remember { mutableStateOf<KernelProfile?>(null) }
+    var currentProfileName by remember { mutableStateOf(ProfileManager.currentProfileName(context)) }
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
         val profile = selectedForExport
@@ -108,15 +114,17 @@ fun ProfilesScreen() {
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
                 }
                 item {
-                    Text("Built-in Templates", style = MaterialTheme.typography.titleMedium)
+                    Text("Built-in Profiles", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(4.dp))
-                    Text("Apply-only JSON templates. Built-in templates cannot be deleted or exported.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    Text("Apply-only JSON profiles. Built-in profiles cannot be deleted or exported.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
                 items(builtinProfiles, key = { "builtin-${it.name}" }) { profile ->
                     BuiltinProfileCard(
                         profile = profile,
+                        applied = currentProfileName == profile.name,
                         onApply = {
-                            val result = ProfileManager.restore(profile)
+                            val result = ProfileManager.restore(context, profile)
+                            currentProfileName = profile.name
                             message = "Applied ${profile.name}: ${result.success} settings${if (result.failed > 0) "; ${result.failed} failed" else ""}"
                         },
                     )
@@ -131,7 +139,8 @@ fun ProfilesScreen() {
                         profile = profile,
                         bootEnabled = bootProfile == profile.name,
                         onRestore = {
-                            val result = ProfileManager.restore(profile)
+                            val result = ProfileManager.restore(context, profile)
+                            currentProfileName = profile.name
                             message = "Restored ${result.success} settings${if (result.failed > 0) "; ${result.failed} failed" else ""}"
                         },
                         onExport = { selectedForExport = profile; exportLauncher.launch("${profile.name}.json") },
@@ -196,18 +205,28 @@ fun ProfilesScreen() {
 @Composable
 private fun BuiltinProfileCard(
     profile: KernelProfile,
+    applied: Boolean,
     onApply: () -> Unit,
 ) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.weight(1f)) {
-                Text(profile.name, style = MaterialTheme.typography.titleMedium)
-                Text("${profile.settings.size} settings • Built-in JSON template", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val icon = when (profile.name) {
+                        "Gaming" -> Icons.Rounded.SportsEsports
+                        "Performance" -> Icons.Rounded.Speed
+                        "Balance" -> Icons.Rounded.Balance
+                        "Battery Saver" -> Icons.Rounded.BatterySaver
+                        else -> Icons.Rounded.Bolt
+                    }
+                    androidx.compose.material3.Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text(profile.name, style = MaterialTheme.typography.titleMedium)
+                }
             }
-            Button(onClick = onApply) {
+            Button(onClick = onApply, enabled = !applied) {
                 androidx.compose.material3.Icon(Icons.Rounded.Restore, null)
                 Spacer(Modifier.padding(horizontal = 2.dp))
-                Text("Apply")
+                Text(if (applied) "Applied" else "Apply")
             }
         }
     }

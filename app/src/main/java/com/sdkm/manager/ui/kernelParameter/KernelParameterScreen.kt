@@ -950,7 +950,7 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
     val memory by viewModel.memory.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var swappiness by remember(memory.swappiness) {
-        mutableStateOf(memory.swappiness.toFloatOrNull()?.coerceIn(0f, 200f) ?: 0f)
+        mutableStateOf(memory.swappiness.toFloatOrNull()?.coerceIn(0f, 100f) ?: 0f)
     }
     var pageCluster by remember { mutableStateOf(memory.pageCluster) }
     var vfsCachePressure by remember { mutableStateOf(memory.vfsCachePressure) }
@@ -1030,7 +1030,7 @@ fun MemoryCard(viewModel: KernelParameterViewModel) {
                                     title = stringResource(R.string.swappiness),
                                     valueText = swappiness.toInt().toString(),
                                     value = swappiness,
-                                    valueRange = 0f..200f,
+                                    valueRange = 0f..100f,
                                     description = stringResource(R.string.swappiness_description),
                                     onInfoClick = { vmDescription = it },
                                     onValueChange = { swappiness = it },
