@@ -1,100 +1,333 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/Shas45558/SDKM/main/.github/banner.png" width="100%" alt="Banner">
+# SDK Manager
 
-# SDKM
-</div>
-<p align="center">
-<a href="https://github.com/Shas45558/SDK_Manager/releases"><img src="https://img.shields.io/github/downloads/Shas45558/SDKM/total?color=%238B0425&logo=android&logoColor=%23fff&style=for-the-badge" alt="Downloads"></a>
-</p>
-<div align="center">
+A powerful Android system-tuning and device-management application designed to provide a modern interface for monitoring and controlling supported kernel and system performance features.
 
-<p><strong>Take full control of your device's kernel. Tune performance, battery life, and more!</strong></p>
-<br>
-<p>Unlock the true potential of your Android device with <strong>SDKM</strong>, a powerful and user-friendly open-source tool for managing your kernel settings. This app provides a clean interface to tweak and monitor a wide range of kernel parameters.</p>
-<br>
-<p>Fine-tune your device for peak performance, maximum battery life, or a perfect balance between the two.</p>
-
-## Download
-
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="Get it on IzzyOnDroid" height="80">](https://apt.izzysoft.de/fdroid/index/apk/com.sdkm.manager)
-[<img src="https://raw.githubusercontent.com/andOTP/andOTP/master/assets/badges/get-it-on-github.png" alt="Get it on GitHub" height="80">](https://github.com/Shas45558/SDK_Manager/releases)
-[<img src="https://www.openapk.net/images/openapk-badge.png" alt="Get it on OpenAPK" height="80">](https://github.com/Shas45558/SDK_Manager/releases)
-</div>
+> **Root access is required for features that modify kernel/system parameters.**
+> Feature availability depends on the device, kernel, Android version, and available sysfs interfaces.
 
 ## ✨ Features
 
-### 📊 Device Information Dashboard
-Monitor critical device information including CPU model, GPU model, RAM, kernel version, Android version, and more.
+### 🏠 Home Dashboard
 
-### 🔋 Battery Monitoring & Control
-- **Real-time monitoring**: Voltage, temperature, charging level, and deep sleep time
-- **Fast charging control**: Enable/disable for supported devices
-- **Bypass charging mode**: Supported on compatible kernels
-- **Battery health tracking**: Monitor current health and capacity
-- **Thermal configuration**: Manage thermal profiles for optimal performance
+The Home page provides a quick overview of the device's current system state.
 
-### ⚡ SoC (System on Chip) Management
-Advanced CPU & GPU control with comprehensive support for:
-- **Multi-cluster CPU support**: Little, Big, and Prime core clusters
-- **Governor selection**: Choose optimal CPU & GPU scheduling policies
-- **Frequency scaling**: Set custom min/max frequencies
-- **GPU tuning**: Power level control, Adreno boost, and throttling settings
+#### CPU
+- Displays CPU information and current CPU frequencies.
+- Shows the maximum CPU frequency for the available CPU clusters.
+- Displays the current CPU governor for each CPU cluster.
+- Provides a quick overview of the current CPU performance configuration.
 
-### 🛠️ Kernel Parameter Tuning
-Fine-tune kernel settings for optimal performance:
-- **Memory management**: Swappiness, dirty ratio, and ZRAM configuration
-- **ZRAM optimization**: Size allocation and compression algorithm selection
-- **Network tuning**: TCP congestion control algorithm selection
-- **Scheduling**: Kernel task scheduler tuning with BORE scheduler support
-- **Kernel profiles**: Pre-configured profiles (Performance, Balance, Powersave)
-- **CPU tuning**: Uclamp settings for fine-grained CPU performance control
-- **And many more advanced parameters!**
+#### RAM
+- Displays current RAM usage and memory information.
+- Provides a quick overview of used and available memory.
 
-### 🎨 Material 3 Expressive Design
-- **Modern interface**: Clean, intuitive Material 3 design
-- **Dynamic theming**: Adapts to your system colors
-- **Dark/Light modes**: Full theme support
+#### ZRAM
+- Displays ZRAM information and current ZRAM configuration.
+- Helps monitor compressed memory usage.
 
-### 🔒 System Integration
-- **WireGuard support**: Monitor WireGuard kernel module status
-- **Real-time monitoring**: CPU usage, uptime, and system metrics
+#### Current Profile
+The Home page displays the currently applied performance profile.
 
-## 📱 Screenshots (v1.2.5)
+When no profile has been applied:
 
-<p><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/01.png" width="32%" /> <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/02.png" width="32%" /> <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/03.png" width="32%" />
-<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/04.png" width="32%" /> <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/05.png" width="32%" /> <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/06.png" width="32%" /></p>
+**No profile applied**
 
-## 📋 Requirements
+A **Go to Backup →** button opens the Backup page.
 
-- ⚠️ **ROOT ACCESS REQUIRED** - This app needs root permissions to modify kernel parameters
-- 📱 **Android 12+** - Minimum supported Android version
-- 🔧 **Snapdragon devices** - Currently only compatible with Qualcomm Snapdragon SoCs
+When a profile is active, the current profile name is displayed together with a **Choose** button, allowing the user to select another profile.
 
-## Contributing
+---
 
-Contributions to SDKM are welcome!  Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute.
+# ⚡ Profiles
 
-## Telegram
+SDK Manager supports configurable performance profiles that allow users to quickly switch between different system configurations.
 
-- [Channel](https://t.me/rveproject)
-- [Group](https://t.me/ocmt6768)
+## Built-in Profiles
 
-## Credits
-- SDKM icon & banner by [Alister Grey](https://t.me/allisterhellground)
+The application includes five built-in profiles:
 
-## License
+- 🎮 **Gaming**
+- 🚀 **Performance**
+- ⚖️ **Balance**
+- 🔋 **Battery Saver**
+- 🛡️ **Ultra Power Saver**
 
-    Copyright (C) 2025 Rve
+Built-in profiles are provided as predefined JSON configurations.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+### Built-in Profile Protection
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+Built-in profiles are templates provided by the application.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+Users can:
+
+- View built-in profiles
+- Apply built-in profiles
+- Switch between built-in profiles
+
+Users cannot:
+
+- Delete built-in profiles
+- Export built-in profiles
+
+This prevents accidental removal or modification of predefined templates.
+
+---
+
+## 👤 Custom Profiles
+
+Users can create their own profiles just like before.
+
+Custom profiles allow users to save their preferred system settings and restore them later.
+
+Custom profiles can be used alongside the built-in profiles.
+
+---
+
+## 📦 Profile Application
+
+When a profile is applied, SDK Manager processes the settings contained in that profile.
+
+After applying a profile, the **Apply** button becomes disabled/gray.
+
+If any setting fails during application, the Apply button is also disabled/gray so the profile cannot be repeatedly applied through the same active Apply state.
+
+---
+
+# 💾 Backup / Profiles Page
+
+The Backup page acts as the central location for profile management.
+
+It contains:
+
+- Built-in profiles
+- User-created profiles
+- Profile application controls
+- Profile information
+- Profile configuration data
+
+Built-in profiles are stored as JSON templates so their settings can be consistently applied.
+
+---
+
+# 🧠 Memory Management
+
+SDK Manager provides memory-related controls for supported devices.
+
+### Swapness
+
+The memory **Swapness** control allows users to configure the kernel's memory swapping behavior.
+
+The slider range is:
+
+**0 → 100**
+
+### ZRAM
+
+Supported devices can expose ZRAM-related information and controls through the application.
+
+ZRAM can help Android use compressed memory as an additional memory resource.
+
+---
+
+# 📋 Log
+
+The Log page provides quick access to supported logging/debugging functions.
+
+The interface contains seven log-related buttons arranged in a compact layout for easy access.
+
+Buttons **5 and 6** follow the same sizing and positioning style as the existing buttons to keep the interface visually consistent.
+
+---
+
+# 🎨 User Interface
+
+SDK Manager uses a modern card-based interface designed for quick access to important system information.
+
+The UI includes:
+
+- Dashboard cards
+- CPU information
+- RAM information
+- ZRAM information
+- Current profile information
+- Profile cards
+- Built-in profile artwork
+- Log controls
+- Memory controls
+- Apply and selection actions
+
+Built-in profiles include dedicated visual artwork displayed beside the profile name.
+
+---
+
+# 🔧 System Control
+
+Depending on device and kernel support, SDK Manager can interact with system/kernel interfaces to modify supported parameters.
+
+Possible controls depend on what the device exposes through interfaces such as:
+
+- `/sys`
+- CPU frequency interfaces
+- CPU governor interfaces
+- Memory interfaces
+- ZRAM interfaces
+- Other supported kernel controls
+
+Because Android kernels differ between devices, not every feature will be available on every device.
+
+---
+
+# 🔐 Root Requirements
+
+Many SDK Manager features require elevated privileges.
+
+For full functionality, the device may require:
+
+- Root access
+- A compatible kernel
+- Required sysfs interfaces
+- Appropriate permissions
+
+If a particular kernel parameter does not exist on a device, SDK Manager cannot safely control that parameter.
+
+---
+
+# 📱 Device Compatibility
+
+SDK Manager is designed for Android devices with exposed kernel/system controls.
+
+Compatibility depends on:
+
+- Android version
+- Kernel version
+- Device manufacturer
+- CPU architecture
+- Kernel configuration
+- Available sysfs nodes
+- Root implementation
+- SELinux configuration
+- Vendor-specific modifications
+
+A feature working on one device does not necessarily mean the same feature will work on another device.
+
+---
+
+# ⚠️ Important Warning
+
+Changing CPU, memory, governor, ZRAM, or other kernel parameters can affect:
+
+- Performance
+- Battery life
+- Temperature
+- Stability
+- System responsiveness
+
+Some settings may be unsafe or unsupported on particular devices.
+
+**Use system-tuning features at your own risk.**
+
+---
+
+# 🛠️ Development
+
+SDK Manager is an Android project intended for developers and advanced Android users interested in system and kernel management.
+
+The project can be opened and built using Android Studio or a compatible Gradle environment.
+
+Before building, make sure your development environment has the required:
+
+- Android SDK
+- Android build tools
+- JDK
+- Gradle dependencies
+
+---
+
+# 📂 Profile Format
+
+Profiles use JSON configuration data.
+
+A profile can contain the values required by SDK Manager to configure supported system parameters.
+
+Example:
+
+```json
+{
+  "name": "Gaming",
+  "settings": {
+    "example_setting": "value"
+  }
+}
+```
+
+The exact available settings depend on the implementation and device.
+
+---
+
+# 🚀 Project Goals
+
+SDK Manager aims to provide a simple way to manage advanced Android system settings without requiring users to manually edit sysfs files or execute multiple shell commands.
+
+Main goals:
+
+- Simple system tuning
+- Fast profile switching
+- Clear system monitoring
+- Built-in performance presets
+- Custom user profiles
+- Memory management
+- CPU monitoring
+- Kernel/logging controls
+- Modern and easy-to-use UI
+
+---
+
+# 📌 Built-in Profiles
+
+| Profile | Purpose |
+|---|---|
+| 🎮 Gaming | Gaming-focused configuration |
+| 🚀 Performance | Performance-focused configuration |
+| ⚖️ Balance | Balanced performance and battery usage |
+| 🔋 Battery Saver | Reduced power consumption |
+| 🛡️ Ultra Power Saver | Maximum power-saving configuration |
+
+---
+
+# 🤝 Contributing
+
+Contributions, bug reports, feature suggestions, and improvements are welcome.
+
+When reporting an issue, include:
+
+- Device model
+- Android version
+- Kernel version
+- Root solution
+- Relevant logs
+- Description of the problem
+- Steps to reproduce the issue
+
+---
+
+# ⚖️ Disclaimer
+
+SDK Manager is provided for educational and advanced system-management purposes.
+
+Modifying kernel or system parameters can cause instability, excessive heat, battery drain, crashes, or other unexpected behavior.
+
+Always understand a setting before changing it and keep a recovery method available.
+
+---
+
+## ⭐ Project
+
+If you find SDK Manager useful, consider supporting the project by:
+
+- ⭐ Starring the repository
+- 🐛 Reporting bugs
+- 💡 Suggesting improvements
+- 🔧 Contributing code
+- 📖 Improving documentation
+
+**SDK Manager — Simple interface. Powerful system control.**
