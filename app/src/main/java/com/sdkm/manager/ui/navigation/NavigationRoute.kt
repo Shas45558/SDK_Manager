@@ -14,6 +14,7 @@ import com.sdkm.manager.ui.MainActivity
 import com.sdkm.manager.ui.home.HomeScreen
 import com.sdkm.manager.ui.home.HomeViewModel
 import com.sdkm.manager.ui.kernelParameter.MemoryScreen
+import com.sdkm.manager.ui.display.DisplayScreen
 import com.sdkm.manager.ui.logs.LogsScreen
 import com.sdkm.manager.ui.monitor.MonitorScreen
 import com.sdkm.manager.ui.profiles.ProfilesScreen
@@ -26,6 +27,7 @@ const val CpuRoute = "cpu"
 const val GpuRoute = "gpu"
 const val BatteryRoute = "battery"
 const val MemoryRoute = "memory"
+const val DisplayRoute = "display"
 const val MonitorRoute = "monitor"
 const val LogsRoute = "logs"
 const val ProfilesRoute = "profiles"
@@ -57,6 +59,7 @@ fun SDKMNavHost(startDestination: String = HomeRoute, openDrawerOnStart: Boolean
             composable(CpuRoute) { SoCScreen(navController = navController, section = SocSection.CPU) }
             composable(GpuRoute) { SoCScreen(navController = navController, section = SocSection.GPU) }
             composable(MemoryRoute) { MemoryScreen(navController = navController) }
+            composable(DisplayRoute) { DisplayScreen(navController = navController) }
             composable(MonitorRoute) {
                 MonitorScreen(onNotificationRequest = {
                     (context as? MainActivity)?.requestMonitorNotification()

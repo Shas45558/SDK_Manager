@@ -85,6 +85,7 @@ import com.sdkm.manager.ui.navigation.HomeRoute
 import com.sdkm.manager.ui.navigation.CpuRoute
 import com.sdkm.manager.ui.navigation.GpuRoute
 import com.sdkm.manager.ui.navigation.MemoryRoute
+import com.sdkm.manager.ui.navigation.DisplayRoute
 import com.sdkm.manager.ui.navigation.MonitorRoute
 import com.sdkm.manager.ui.navigation.LogsRoute
 import com.sdkm.manager.ui.navigation.ProfilesRoute
@@ -113,6 +114,7 @@ fun SimpleTopAppBar(
         "CPU" to CpuRoute,
         "GPU" to GpuRoute,
         "Memory" to MemoryRoute,
+        "Display" to DisplayRoute,
         "Monitor" to MonitorRoute,
         "Task Killer" to "task_killer",
         "Logs" to LogsRoute,
@@ -122,6 +124,7 @@ fun SimpleTopAppBar(
         "CPU" -> CpuRoute
         "GPU" -> GpuRoute
         "Memory" -> MemoryRoute
+        "Display" -> DisplayRoute
         "Monitor" -> MonitorRoute
         "Task Killer" -> "task_killer"
         "Logs" -> LogsRoute
