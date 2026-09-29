@@ -50,7 +50,7 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
             item {
                 ControlCard("Resolution", "Change the logical resolution used by apps. Lower values can reduce GPU workload.") {
                     ValueRow("Scale", "${resolutionPercent.toInt()}%")
-                    Slider(resolutionPercent, { resolutionPercent = it }, 50f..100f)
+                    Slider(value = resolutionPercent, onValueChange = { resolutionPercent = it }, valueRange = 50f..100f)
                     val preview = DisplayUtils.resolutionForPercent(resolutionPercent.toInt())
                     Text("Calculated: ${preview.first} × ${preview.second}", color = MaterialTheme.colorScheme.primary)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -69,7 +69,7 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
             item {
                 ControlCard("Display Size / Density", "System-wide UI scaling. This is independent from rendering resolution.") {
                     ValueRow("Scale", "${sizePercent.toInt()}%")
-                    Slider(sizePercent, { sizePercent = it }, 50f..150f)
+                    Slider(value = sizePercent, onValueChange = { sizePercent = it }, valueRange = 50f..150f)
                     Text("Calculated DPI: ${DisplayUtils.densityForPercent(sizePercent.toInt())}", color = MaterialTheme.colorScheme.primary)
                     OutlinedTextField(density, { density = it.filter(Char::isDigit) }, Modifier.fillMaxWidth(), label = { Text("Manual DPI") }, singleLine = true)
                     Button(Modifier.fillMaxWidth(), onClick = { density.toIntOrNull()?.let { d -> apply { DisplayUtils.setDensity(d) } } }) { Text("Apply Density") }
@@ -81,14 +81,14 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
                     Text("Supported: ${state.supportedRefreshRates.joinToString(", ") { "${it.toInt()} Hz" }}")
                     val min = state.supportedRefreshRates.minOrNull() ?: 60f
                     val max = state.supportedRefreshRates.maxOrNull() ?: 60f
-                    Slider(selectedRefresh, { selectedRefresh = it }, min..max, enabled = state.supportedRefreshRates.size > 1)
+                    Slider(value = selectedRefresh, onValueChange = { selectedRefresh = it }, valueRange = min..max, enabled = state.supportedRefreshRates.size > 1)
                     Button(Modifier.fillMaxWidth(), enabled = state.supportedRefreshRates.size > 1, onClick = { apply { DisplayUtils.setRefreshRate(selectedRefresh) } }) { Text("Apply Refresh Rate") }
                 }
             }
             item {
                 ControlCard("Brightness", "Hardware backlight percentage.") {
                     ValueRow("Brightness", "${brightness.toInt()}%")
-                    Slider(brightness, { brightness = it }, 0f..100f)
+                    Slider(value = brightness, onValueChange = { brightness = it }, valueRange = 0f..100f)
                     Button(Modifier.fillMaxWidth(), onClick = { apply { DisplayUtils.setBrightness(brightness.toInt()) } }) { Text("Apply Brightness") }
                 }
             }
