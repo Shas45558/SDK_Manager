@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -15,6 +16,7 @@ import com.sdkm.manager.utils.DisplayState
 import com.sdkm.manager.utils.DisplayUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = viewModel()) {
@@ -27,7 +29,7 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
     var brightness by remember { mutableFloatStateOf(0f) }
     var selectedRefresh by remember { mutableFloatStateOf(60f) }
     var hbm by remember { mutableIntStateOf(0) }
-    var message by remember { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(state) {
@@ -38,8 +40,22 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
         selectedRefresh = state.refreshRate; hbm = state.hbmMode
     }
     fun apply(action: () -> Boolean) = scope.launch(Dispatchers.IO) {
-        val ok = action(); viewModel.refresh()
-        message = if (ok) "Applied successfully" else "Apply failed — previous value kept"
+        val ok = action()
+        viewModel.refresh()
+        withContext(Dispatchers.Main) {
+            Toast.makeText(
+                context,
+                if (ok) "Applied successfully" else "Apply failed — previous value kept",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+    fun resetDisplay() = scope.launch(Dispatchers.IO) {
+        DisplayUtils.resetDisplay()
+        viewModel.refresh()
+        withContext(Dispatchers.Main) {
+            Toast.makeText(context, "Display reset successfully", Toast.LENGTH_SHORT).show()
+        }
     }
     fun refresh() = scope.launch(Dispatchers.IO) { viewModel.refresh() }
 
@@ -50,12 +66,44 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
             item {
                 ControlCard("Resolution", "Change the logical resolution used by apps. Lower values can reduce GPU workload.") {
                     ValueRow("Scale", "${resolutionPercent.toInt()}%")
-                    Slider(value = resolutionPercent, onValueChange = { resolutionPercent = it }, valueRange = 50f..100f)
+                    Slider(
+                        value = resolutionPercent,
+                        onValueChange = { value ->
+                            resolutionPercent = value
+                            val (w, h) = DisplayUtils.resolutionForPercent(value.toInt())
+                            width = w.toString()
+                            height = h.toString()
+                        },
+                        valueRange = 50f..100f,
+                        steps = 49
+                    )
                     val preview = DisplayUtils.resolutionForPercent(resolutionPercent.toInt())
                     Text("Calculated: ${preview.first} × ${preview.second}", color = MaterialTheme.colorScheme.primary)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(width, { width = it.filter(Char::isDigit) }, Modifier.weight(1f), label = { Text("Width") }, singleLine = true)
-                        OutlinedTextField(height, { height = it.filter(Char::isDigit) }, Modifier.weight(1f), label = { Text("Height") }, singleLine = true)
+                        OutlinedTextField(
+                            value = width,
+                            onValueChange = { value ->
+                                width = value.filter(Char::isDigit)
+                                width.toIntOrNull()?.let { w ->
+                                    resolutionPercent = (w * 100f / DisplayUtils.BASE_WIDTH).coerceIn(50f, 100f)
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            label = { Text("Width") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = height,
+                            onValueChange = { value ->
+                                height = value.filter(Char::isDigit)
+                                height.toIntOrNull()?.let { h ->
+                                    resolutionPercent = (h * 100f / DisplayUtils.BASE_HEIGHT).coerceIn(50f, 100f)
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            label = { Text("Height") },
+                            singleLine = true
+                        )
                     }
                     Button(onClick = {
                         val w = width.toIntOrNull(); val h = height.toIntOrNull()
@@ -69,9 +117,28 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
             item {
                 ControlCard("Display Size / Density", "System-wide UI scaling. This is independent from rendering resolution.") {
                     ValueRow("Scale", "${sizePercent.toInt()}%")
-                    Slider(value = sizePercent, onValueChange = { sizePercent = it }, valueRange = 50f..150f)
+                    Slider(
+                        value = sizePercent,
+                        onValueChange = { value ->
+                            sizePercent = value
+                            density = DisplayUtils.densityForPercent(value.toInt()).toString()
+                        },
+                        valueRange = 50f..150f,
+                        steps = 99
+                    )
                     Text("Calculated DPI: ${DisplayUtils.densityForPercent(sizePercent.toInt())}", color = MaterialTheme.colorScheme.primary)
-                    OutlinedTextField(density, { density = it.filter(Char::isDigit) }, Modifier.fillMaxWidth(), label = { Text("Manual DPI") }, singleLine = true)
+                    OutlinedTextField(
+                        value = density,
+                        onValueChange = { value ->
+                            density = value.filter(Char::isDigit)
+                            density.toIntOrNull()?.let { d ->
+                                sizePercent = (d * 100f / DisplayUtils.BASE_DENSITY).coerceIn(50f, 150f)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Manual DPI") },
+                        singleLine = true
+                    )
                     Button(onClick = { density.toIntOrNull()?.let { d -> apply { DisplayUtils.setDensity(d) } } }) { Text("Apply Density") }
                     TextButton(onClick = { density = DisplayUtils.densityForPercent(sizePercent.toInt()).toString() }) { Text("Use percentage DPI") }
                 }
@@ -107,8 +174,7 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Reset Display", style = MaterialTheme.typography.titleMedium)
                         Text("Restore 1080 × 2340 / 440 DPI.")
-                        Button(onClick = { apply { DisplayUtils.resetDisplay() } }) { Text("Reset Display") }
-                        if (message.isNotEmpty()) Text(message, color = MaterialTheme.colorScheme.primary)
+                        Button(onClick = { resetDisplay() }) { Text("Reset Display") }
                         TextButton(onClick = { refresh() }) { Text("Refresh Values") }
                     }
                 }
