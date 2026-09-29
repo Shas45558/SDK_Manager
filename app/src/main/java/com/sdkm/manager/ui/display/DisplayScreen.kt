@@ -57,11 +57,11 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
                         OutlinedTextField(width, { width = it.filter(Char::isDigit) }, Modifier.weight(1f), label = { Text("Width") }, singleLine = true)
                         OutlinedTextField(height, { height = it.filter(Char::isDigit) }, Modifier.weight(1f), label = { Text("Height") }, singleLine = true)
                     }
-                    Button(Modifier.fillMaxWidth(), onClick = {
+                    Button(onClick = {
                         val w = width.toIntOrNull(); val h = height.toIntOrNull()
                         if (w != null && h != null) apply { DisplayUtils.setResolution(w, h) }
                     }) { Text("Apply Resolution") }
-                    TextButton(Modifier.fillMaxWidth(), onClick = {
+                    TextButton(onClick = {
                         val p = resolutionPercent.toInt(); val (w, h) = DisplayUtils.resolutionForPercent(p); width = w.toString(); height = h.toString()
                     }) { Text("Use ${resolutionPercent.toInt()}% values") }
                 }
@@ -72,8 +72,8 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
                     Slider(value = sizePercent, onValueChange = { sizePercent = it }, valueRange = 50f..150f)
                     Text("Calculated DPI: ${DisplayUtils.densityForPercent(sizePercent.toInt())}", color = MaterialTheme.colorScheme.primary)
                     OutlinedTextField(density, { density = it.filter(Char::isDigit) }, Modifier.fillMaxWidth(), label = { Text("Manual DPI") }, singleLine = true)
-                    Button(Modifier.fillMaxWidth(), onClick = { density.toIntOrNull()?.let { d -> apply { DisplayUtils.setDensity(d) } } }) { Text("Apply Density") }
-                    TextButton(Modifier.fillMaxWidth(), onClick = { density = DisplayUtils.densityForPercent(sizePercent.toInt()).toString() }) { Text("Use percentage DPI") }
+                    Button(onClick = { density.toIntOrNull()?.let { d -> apply { DisplayUtils.setDensity(d) } } }) { Text("Apply Density") }
+                    TextButton(onClick = { density = DisplayUtils.densityForPercent(sizePercent.toInt()).toString() }) { Text("Use percentage DPI") }
                 }
             }
             item {
@@ -82,14 +82,14 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
                     val min = state.supportedRefreshRates.minOrNull() ?: 60f
                     val max = state.supportedRefreshRates.maxOrNull() ?: 60f
                     Slider(value = selectedRefresh, onValueChange = { selectedRefresh = it }, valueRange = min..max, enabled = state.supportedRefreshRates.size > 1)
-                    Button(Modifier.fillMaxWidth(), enabled = state.supportedRefreshRates.size > 1, onClick = { apply { DisplayUtils.setRefreshRate(selectedRefresh) } }) { Text("Apply Refresh Rate") }
+                    Button(onClick = { apply { DisplayUtils.setRefreshRate(selectedRefresh) } }) { Text("Apply Refresh Rate") }
                 }
             }
             item {
                 ControlCard("Brightness", "Hardware backlight percentage.") {
                     ValueRow("Brightness", "${brightness.toInt()}%")
                     Slider(value = brightness, onValueChange = { brightness = it }, valueRange = 0f..100f)
-                    Button(Modifier.fillMaxWidth(), onClick = { apply { DisplayUtils.setBrightness(brightness.toInt()) } }) { Text("Apply Brightness") }
+                    Button(onClick = { apply { DisplayUtils.setBrightness(brightness.toInt()) } }) { Text("Apply Brightness") }
                 }
             }
             item {
@@ -97,7 +97,7 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
                     Text("Current mode: $hbm")
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         (0..2).forEach { mode ->
-                            Button(Modifier.weight(1f), onClick = { hbm = mode; apply { DisplayUtils.setHbm(mode) } }) { Text("Mode $mode") }
+                            Button(onClick = { hbm = mode; apply { DisplayUtils.setHbm(mode) } }) { Text("Mode $mode") }
                         }
                     }
                 }
@@ -107,9 +107,9 @@ fun DisplayScreen(navController: NavController, viewModel: DisplayViewModel = vi
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Reset Display", style = MaterialTheme.typography.titleMedium)
                         Text("Restore 1080 × 2340 / 440 DPI.")
-                        Button(Modifier.fillMaxWidth(), onClick = { apply { DisplayUtils.resetDisplay() } }) { Text("Reset Display") }
+                        Button(onClick = { apply { DisplayUtils.resetDisplay() } }) { Text("Reset Display") }
                         if (message.isNotEmpty()) Text(message, color = MaterialTheme.colorScheme.primary)
-                        TextButton(Modifier.fillMaxWidth(), onClick = { refresh() }) { Text("Refresh Values") }
+                        TextButton(onClick = { refresh() }) { Text("Refresh Values") }
                     }
                 }
             }
