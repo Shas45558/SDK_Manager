@@ -3,6 +3,7 @@ package com.sdkm.manager.ui.thermal
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sdkm.manager.utils.Utils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class ThermalViewModel : ViewModel() {
@@ -34,6 +36,12 @@ class ThermalViewModel : ViewModel() {
         private const val PPM_THERMAL_POWER = "/proc/ppm/policy/thermal_cur_power"
         private const val PPM_THERMAL_LIMIT = "/proc/ppm/policy/thermal_limit"
         private val POLICY_NAMES = mapOf(0 to "PTPOD", 1 to "SYS_BOOST", 2 to "PWR_THRO", 3 to "THERMAL", 4 to "DLPT", 5 to "LCM_OFF")
+        private val CURRENT_POWER_REGEX = Regex("current power\\s*=\\s*(-?\\d+)")
+        private val MIN_POWER_REGEX = Regex("min power\\s*=\\s*(-?\\d+)")
+        private val MAX_POWER_REGEX = Regex("max power\\s*=\\s*(-?\\d+)")
+        private val LIMITED_POWER_REGEX = Regex("limited power\\s*=\\s*(-?\\d+)")
+        private val ACTIVE_REGEX = Regex("PPM thermal activate\\s*=\\s*(\\d+)")
+        private val POLICY_REGEX = Regex("\\[(\\d+)]\\s+PPM_POLICY_([A-Z_]+):\\s+(enabled|disabled)")
     }
 
     private val _state = MutableStateFlow(State())
@@ -42,9 +50,12 @@ class ThermalViewModel : ViewModel() {
 
     fun start() {
         if (refreshJob?.isActive == true) return
-        refreshJob = viewModelScope.launch {
+        refreshJob = viewModelScope.launch(Dispatchers.IO) {
             while (isActive) {
-                refresh()
+                val newState = readState()
+                withContext(Dispatchers.Main.immediate) {
+                    _state.value = newState
+                }
                 delay(1000)
             }
         }
@@ -56,24 +67,51 @@ class ThermalViewModel : ViewModel() {
     }
 
     fun refresh() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val newState = readState()
+            withContext(Dispatchers.Main.immediate) {
+                _state.value = newState
+            }
+        }
+    }
+
+    fun setPolicy(index: Int, enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val ok = Utils.writeFile(PPM_POLICY_STATUS, "$index ${if (enabled) 1 else 0}")
+            if (ok) {
+                val newState = readState()
+                withContext(Dispatchers.Main.immediate) {
+                    _state.value = newState
+                }
+            } else {
+                withContext(Dispatchers.Main.immediate) {
+                    _state.value = _state.value.copy(
+                        writeError = "Failed to change PPM policy $index. Root access may be required."
+                    )
+                }
+            }
+        }
+    }
+
+    private fun readState(): State {
         val zone = findThermalZone("mtktscpu")
         val temp = zone?.let { readInt("$it/temp")?.let { value -> "%.1f°C".format(value / 1000f) } } ?: "N/A"
         val trips = zone?.let { readTripPoints(it) } ?: emptyList()
 
         val powerText = Utils.readFile(PPM_THERMAL_POWER)
-        val powerCurrent = Regex("current power\\s*=\\s*(-?\\d+)").find(powerText)?.groupValues?.get(1)
-        val powerMin = Regex("min power\\s*=\\s*(-?\\d+)").find(powerText)?.groupValues?.get(1)
-        val powerMax = Regex("max power\\s*=\\s*(-?\\d+)").find(powerText)?.groupValues?.get(1)
+        val powerCurrent = CURRENT_POWER_REGEX.find(powerText)?.groupValues?.get(1)
+        val powerMin = MIN_POWER_REGEX.find(powerText)?.groupValues?.get(1)
+        val powerMax = MAX_POWER_REGEX.find(powerText)?.groupValues?.get(1)
 
         val limitText = Utils.readFile(PPM_THERMAL_LIMIT)
-        val limitedPower = Regex("limited power\\s*=\\s*(-?\\d+)").find(limitText)?.groupValues?.get(1)
-        val active = Regex("PPM thermal activate\\s*=\\s*(\\d+)").find(limitText)?.groupValues?.get(1) == "1"
+        val limitedPower = LIMITED_POWER_REGEX.find(limitText)?.groupValues?.get(1)
+        val active = ACTIVE_REGEX.find(limitText)?.groupValues?.get(1) == "1"
 
         val adaptive = findCoolingDevice("cpu_adaptive_0")?.let { Utils.readFile("$it/cur_state") } ?: "N/A"
         val reset = findCoolingDevice("mtktscpu-sysrst")?.let { Utils.readFile("$it/cur_state") } ?: "N/A"
         val policies = parsePolicies(Utils.readFile(PPM_POLICY_STATUS))
 
-        _state.value = State(
+        return State(
             cpuTemp = temp,
             tripPoints = trips,
             thermalCurrentPower = powerCurrent ?: "N/A",
@@ -86,11 +124,6 @@ class ThermalViewModel : ViewModel() {
             policies = policies,
             writeError = null,
         )
-    }
-
-    fun setPolicy(index: Int, enabled: Boolean) {
-        val ok = Utils.writeFile(PPM_POLICY_STATUS, "$index ${if (enabled) 1 else 0}")
-        if (ok) refresh() else _state.value = _state.value.copy(writeError = "Failed to change PPM policy $index. Root access may be required.")
     }
 
     private fun findThermalZone(type: String): String? = runCatching {
@@ -115,7 +148,7 @@ class ThermalViewModel : ViewModel() {
     }
 
     private fun parsePolicies(text: String): List<Policy> = text.lineSequence().mapNotNull { line ->
-        val match = Regex("\\[(\\d+)]\\s+PPM_POLICY_([A-Z_]+):\\s+(enabled|disabled)").find(line) ?: return@mapNotNull null
+        val match = POLICY_REGEX.find(line) ?: return@mapNotNull null
         val index = match.groupValues[1].toIntOrNull() ?: return@mapNotNull null
         Policy(index, POLICY_NAMES[index] ?: match.groupValues[2], match.groupValues[3] == "enabled")
     }.sortedBy { it.index }.toList()
