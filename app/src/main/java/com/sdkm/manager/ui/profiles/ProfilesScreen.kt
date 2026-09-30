@@ -38,6 +38,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import com.sdkm.manager.ui.components.SimpleTopAppBar
 import com.sdkm.manager.ui.components.SDKMStandaloneDrawerHost
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.DateFormat
 import java.util.Date
@@ -63,6 +65,8 @@ fun ProfilesScreen() {
     var message by remember { mutableStateOf<String?>(null) }
     var selectedForExport by remember { mutableStateOf<KernelProfile?>(null) }
     var currentProfileName by remember { mutableStateOf(ProfileManager.currentProfileName(context)) }
+    var working by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
         val profile = selectedForExport
@@ -97,7 +101,7 @@ fun ProfilesScreen() {
                 item {
                     Text("Kernel settings profiles", style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.height(4.dp))
-                    Text("Save and restore only CPU, GPU, and Memory page settings.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Save and restore CPU, GPU, Memory, and Thermal settings.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         Button(onClick = { showName = true }, modifier = Modifier.weight(1f)) {
@@ -123,16 +127,18 @@ fun ProfilesScreen() {
                         profile = profile,
                         applied = currentProfileName == profile.name,
                         onApply = {
-                            val result = ProfileManager.restore(context, profile)
-                            currentProfileName = profile.name
-                            // Built-in profiles apply silently. Only report values that actually failed;
-                            // governor failures are reported as the schedutil fallback value.
-                            message = if (result.failedValues.isNotEmpty()) {
-                                result.failedValues.entries.joinToString("; ") { (path, value) ->
-                                    "${path.substringAfterLast('/')} = $value"
+                            if (!working) {
+                                working = true
+                                scope.launch {
+                                    val result = withContext(Dispatchers.IO) { ProfileManager.restore(context, profile) }
+                                    currentProfileName = profile.name
+                                    message = if (result.failedValues.isNotEmpty()) {
+                                        result.failedValues.entries.joinToString("; ") { (path, value) ->
+                                            "${path.substringAfterLast('/')} = $value"
+                                        }
+                                    } else null
+                                    working = false
                                 }
-                            } else {
-                                null
                             }
                         },
                     )
@@ -147,9 +153,15 @@ fun ProfilesScreen() {
                         profile = profile,
                         bootEnabled = bootProfile == profile.name,
                         onRestore = {
-                            val result = ProfileManager.restore(context, profile)
-                            currentProfileName = profile.name
-                            message = "Restored ${result.success} settings${if (result.failed > 0) "; ${result.failed} failed" else ""}"
+                            if (!working) {
+                                working = true
+                                scope.launch {
+                                    val result = withContext(Dispatchers.IO) { ProfileManager.restore(context, profile) }
+                                    currentProfileName = profile.name
+                                    message = "Restored ${result.success} settings${if (result.failed > 0) "; ${result.failed} failed" else ""}"
+                                    working = false
+                                }
+                            }
                         },
                         onExport = { selectedForExport = profile; exportLauncher.launch("${profile.name}.json") },
                         onDelete = { showDelete = profile },
@@ -184,11 +196,21 @@ fun ProfilesScreen() {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val clean = name.trim().ifBlank { "Profile ${profiles.size + 1}" }
-                    val profile = ProfileManager.captureCurrent(clean)
-                    message = if (profile != null && ProfileManager.save(context, profile)) "Saved ${profile.settings.size} settings" else "Could not read kernel settings (root required)"
-                    profiles = ProfileManager.list(context)
-                    showName = false
+                    if (!working) {
+                        val clean = name.trim().ifBlank { "Profile ${profiles.size + 1}" }
+                        working = true
+                        scope.launch {
+                            val result = withContext(Dispatchers.IO) {
+                                val profile = ProfileManager.captureCurrent(clean)
+                                if (profile != null && ProfileManager.save(context, profile)) "Saved ${profile.settings.size} settings"
+                                else "Could not read kernel settings (root required)"
+                            }
+                            message = result
+                            profiles = withContext(Dispatchers.IO) { ProfileManager.list(context) }
+                            working = false
+                            showName = false
+                        }
+                    }
                 }) { Text("Save") }
             },
             dismissButton = { TextButton(onClick = { showName = false }) { Text("Cancel") } },

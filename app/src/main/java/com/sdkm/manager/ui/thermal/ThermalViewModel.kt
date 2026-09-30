@@ -76,16 +76,20 @@ class ThermalViewModel : ViewModel() {
     }
 
     fun setPolicy(index: Int, enabled: Boolean) {
+        // Reflect the tap immediately; the privileged write happens off the UI
+        // thread and the polling loop reconciles the final kernel state.
+        _state.value = _state.value.copy(
+            policies = _state.value.policies.map {
+                if (it.index == index) it.copy(enabled = enabled) else it
+            },
+            writeError = null,
+        )
         viewModelScope.launch(Dispatchers.IO) {
             val ok = Utils.writeFile(PPM_POLICY_STATUS, "$index ${if (enabled) 1 else 0}")
-            if (ok) {
-                val newState = readState()
+            if (!ok) {
+                val actual = readState()
                 withContext(Dispatchers.Main.immediate) {
-                    _state.value = newState
-                }
-            } else {
-                withContext(Dispatchers.Main.immediate) {
-                    _state.value = _state.value.copy(
+                    _state.value = actual.copy(
                         writeError = "Failed to change PPM policy $index. Root access may be required."
                     )
                 }

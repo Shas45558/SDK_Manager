@@ -19,6 +19,8 @@ object ProfileManager {
     private const val BOOT_SCRIPT = "/data/adb/service.d/sdkm_profile.sh"
     private const val PREFS = "profile_state"
     private const val KEY_CURRENT = "current_profile"
+    private const val PPM_POLICY_PREFIX = "sdkm://ppm/policy/"
+    private const val PPM_POLICY_STATUS = "/proc/ppm/policy_status"
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
 
     private val staticPaths = listOf(
@@ -80,6 +82,16 @@ object ProfileManager {
             val value = read(path) ?: continue
             if (value.isNotBlank()) settings[path] = value.trim()
         }
+
+        // Thermal tab PPM policy switches are runtime controls, so store them
+        // as SDKM virtual keys instead of treating /proc/ppm as a normal path.
+        read(PPM_POLICY_STATUS)?.lineSequence()?.forEach { line ->
+            val match = Regex("\\[(\\d+)]\\s+PPM_POLICY_[A-Z_]+:\\s+(enabled|disabled)").find(line)
+            if (match != null) {
+                settings[PPM_POLICY_PREFIX + match.groupValues[1]] =
+                    if (match.groupValues[2] == "enabled") "1" else "0"
+            }
+        }
         if (settings.isEmpty()) return null
         return KernelProfile(name.trim(), System.currentTimeMillis(), settings)
     }
@@ -127,6 +139,17 @@ object ProfileManager {
         var failed = 0
         val failedValues = linkedMapOf<String, String>()
 
+        // Restore Thermal tab PPM policy switches first.
+        settings.filterKeys { it.startsWith(PPM_POLICY_PREFIX) }.forEach { (key, value) ->
+            val index = key.removePrefix(PPM_POLICY_PREFIX).toIntOrNull()
+            if (index == null || value.trim() !in setOf("0", "1")) {
+                failed++
+                return@forEach
+            }
+            val result = Shell.cmd("[ -e ${q(PPM_POLICY_STATUS)} ] && printf '%s' ${q("$index ${value.trim()}")} > ${q(PPM_POLICY_STATUS)}").exec()
+            if (result.isSuccess) success++ else failed++
+        }
+
         // Always bring every CPU core online first. This is required so that
         // policy/governor settings can be applied even when a profile later
         // requests some cores to be disabled.
@@ -169,7 +192,7 @@ object ProfileManager {
 
         // Apply all non-governor, non-CPU-online settings next.
         settings.forEach { (path, value) ->
-            if (path.endsWith("/scaling_governor") || path.matches(Regex("/sys/devices/system/cpu/cpu[0-9]+/online"))) return@forEach
+            if (path.startsWith(PPM_POLICY_PREFIX) || path.endsWith("/scaling_governor") || path.matches(Regex("/sys/devices/system/cpu/cpu[0-9]+/online"))) return@forEach
             val result = Shell.cmd("[ -e ${q(path)} ] && printf '%s' ${q(value)} > ${q(path)}").exec()
             if (result.isSuccess) success++ else {
                 failed++
@@ -203,7 +226,9 @@ object ProfileManager {
 
             val governorEntries = profile.settings.filterKeys { it.endsWith("/scaling_governor") }
             val otherEntries = profile.settings.filterKeys {
-                !it.endsWith("/scaling_governor") && !it.matches(Regex("/sys/devices/system/cpu/cpu[0-9]+/online"))
+                !it.startsWith(PPM_POLICY_PREFIX) &&
+                    !it.endsWith("/scaling_governor") &&
+                    !it.matches(Regex("/sys/devices/system/cpu/cpu[0-9]+/online"))
             }
             appendLine("gov_failed=0")
             governorEntries.forEach { (path, value) ->
@@ -217,6 +242,13 @@ object ProfileManager {
                 val encoded = android.util.Base64.encodeToString(value.toByteArray(), android.util.Base64.NO_WRAP)
                 appendLine("if [ -e ${q(path)} ]; then echo '$encoded' | base64 -d | cat > ${q(path)} 2>/dev/null; fi")
             }
+            profile.settings.filterKeys { it.startsWith(PPM_POLICY_PREFIX) }.forEach { (key, value) ->
+                val index = key.removePrefix(PPM_POLICY_PREFIX).toIntOrNull() ?: return@forEach
+                if (value.trim() == "0" || value.trim() == "1") {
+                    appendLine("[ -e ${q(PPM_POLICY_STATUS)} ] && echo '${index} ${value.trim()}' > ${q(PPM_POLICY_STATUS)} 2>/dev/null")
+                }
+            }
+
             profile.settings.filterKeys { it.matches(Regex("/sys/devices/system/cpu/cpu[0-9]+/online")) }
                 .filterValues { it.trim() == "0" }
                 .forEach { (path, _) ->
