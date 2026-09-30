@@ -66,10 +66,11 @@ fun ThermalScreen(
             item { ThermalStatusCard(state) }
             item { PpmPolicyCard(state, viewModel) }
             item { ThermalProtectionCard(state) }
-            if (state.writeError != null) {
+            val writeError = state.writeError
+            if (writeError != null) {
                 item {
                     Text(
-                        state.writeError,
+                        writeError,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 4.dp),
