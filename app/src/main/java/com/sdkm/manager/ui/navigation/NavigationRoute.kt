@@ -20,11 +20,13 @@ import com.sdkm.manager.ui.monitor.MonitorScreen
 import com.sdkm.manager.ui.profiles.ProfilesScreen
 import com.sdkm.manager.ui.soc.SoCScreen
 import com.sdkm.manager.ui.soc.SocSection
+import com.sdkm.manager.ui.thermal.ThermalScreen
 
 const val HomeRoute = "home"
 const val SoCRoute = "soc"
 const val CpuRoute = "cpu"
 const val GpuRoute = "gpu"
+const val ThermalRoute = "thermal"
 const val BatteryRoute = "battery"
 const val MemoryRoute = "memory"
 const val DisplayRoute = "display"
@@ -58,6 +60,7 @@ fun SDKMNavHost(startDestination: String = HomeRoute, openDrawerOnStart: Boolean
             composable(HomeRoute) { HomeScreen(navController = navController) }
             composable(CpuRoute) { SoCScreen(navController = navController, section = SocSection.CPU) }
             composable(GpuRoute) { SoCScreen(navController = navController, section = SocSection.GPU) }
+            composable(ThermalRoute) { ThermalScreen(navController = navController) }
             composable(MemoryRoute) { MemoryScreen(navController = navController) }
             composable(DisplayRoute) { DisplayScreen(navController = navController) }
             composable(MonitorRoute) {

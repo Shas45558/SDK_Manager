@@ -84,6 +84,7 @@ import com.sdkm.manager.ui.MainActivity
 import com.sdkm.manager.ui.navigation.HomeRoute
 import com.sdkm.manager.ui.navigation.CpuRoute
 import com.sdkm.manager.ui.navigation.GpuRoute
+import com.sdkm.manager.ui.navigation.ThermalRoute
 import com.sdkm.manager.ui.navigation.MemoryRoute
 import com.sdkm.manager.ui.navigation.DisplayRoute
 import com.sdkm.manager.ui.navigation.MonitorRoute
@@ -113,6 +114,7 @@ fun SimpleTopAppBar(
         "Home" to HomeRoute,
         "CPU" to CpuRoute,
         "GPU" to GpuRoute,
+        "Thermal" to ThermalRoute,
         "Memory" to MemoryRoute,
         "Display" to DisplayRoute,
         "Monitor" to MonitorRoute,
@@ -123,6 +125,7 @@ fun SimpleTopAppBar(
     val selectedRoute = when (title) {
         "CPU" -> CpuRoute
         "GPU" -> GpuRoute
+        "Thermal" -> ThermalRoute
         "Memory" -> MemoryRoute
         "Display" -> DisplayRoute
         "Monitor" -> MonitorRoute
