@@ -35,6 +35,12 @@
         "/sys/devices/system/cpu/cpu4/online": "1",
         "/sys/devices/system/cpu/cpu5/online": "1",
         "/sys/devices/system/cpu/cpu6/online": "1",
-        "/sys/devices/system/cpu/cpu7/online": "1"
+        "/sys/devices/system/cpu/cpu7/online": "1",
+        "sdkm://ppm/policy/0": "0",
+        "sdkm://ppm/policy/1": "1",
+        "sdkm://ppm/policy/2": "0",
+        "sdkm://ppm/policy/3": "0",
+        "sdkm://ppm/policy/4": "0",
+        "sdkm://ppm/policy/5": "0"
     }
 }
