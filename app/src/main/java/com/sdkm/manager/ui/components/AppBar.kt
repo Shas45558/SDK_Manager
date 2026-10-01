@@ -75,7 +75,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.style.TextOverflow
 import com.sdkm.manager.ui.home.HomeViewModel
-import com.sdkm.manager.ui.settings.SettingsActivity
+import com.sdkm.manager.ui.settings.SettingsFloatingMenu
 import com.sdkm.manager.ui.taskKiller.TaskKillerActivity
 import com.sdkm.manager.utils.Utils
 import android.net.Uri
@@ -152,8 +152,12 @@ fun SimpleTopAppBar(
         TopAppBar(
             title = {
                 Column {
-                    Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    subtitle?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    Text("SDKM", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        "By @Shas45558",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             },
             navigationIcon = {},
@@ -161,11 +165,7 @@ fun SimpleTopAppBar(
                 IconButton(onClick = { showReboot = true }) {
                     Icon(Icons.Rounded.RestartAlt, contentDescription = "Reboot")
                 }
-                IconButton(onClick = {
-                    context.startActivity(Intent(context, SettingsActivity::class.java))
-                }) {
-                    Icon(Icons.Rounded.Settings, contentDescription = "Settings")
-                }
+                SettingsFloatingMenu()
                 IconButton(onClick = { showAbout = true }) {
                     Icon(Icons.Rounded.Info, contentDescription = "About")
                 }
@@ -227,7 +227,7 @@ fun SDKMStandaloneHamburgerMenu() {
     Row {
         val context = LocalContext.current
         IconButton(onClick = { Utils.reboot("") }) { Icon(Icons.Rounded.RestartAlt, contentDescription = "Reboot") }
-        IconButton(onClick = { context.startActivity(Intent(context, SettingsActivity::class.java)) }) { Icon(Icons.Rounded.Settings, contentDescription = "Settings") }
+        SettingsFloatingMenu()
         IconButton(onClick = { }) { Icon(Icons.Rounded.Info, contentDescription = "About") }
     }
 }
